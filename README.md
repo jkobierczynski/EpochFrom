@@ -195,4 +195,5 @@ the C++ tool on purpose, not a build dependency.
   `selftest`, `calibrate`, `date --profile`) against a 30-sub Pelican
   Nebula (IC 5070) Ha session with a known capture date (2017-08-28), for
   comparing future runs against. Per-file date estimates cluster within
-  ~17 days of the true date on average.
+  ~17 days of the true date on average (mean offset 17 d; per-frame
+  uncertainty ~3 yr).
