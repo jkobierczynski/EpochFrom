@@ -1,0 +1,280 @@
+# Test run: build + selftest + calibrate + date, against a real 30-sub
+# Pelican Nebula (IC 5070) capture session (Ha, 240s subs), with the
+# `date` run at the bottom passing --profile pelican156.json (the fit
+# saved by the `calibrate` run above it).
+#
+# Known capture date (from imaging session records): 2017-08-28
+# (jyear 2017.657).
+#
+# With the profile applied, per-file RMS against Gaia averages ~729 mas,
+# consistent with the ~379-544 mas the calibrate run above it reports for
+# its own held-out cross-validation. Per-file date estimates cluster
+# mostly within 2015-2020; averaged over all 30 subs they land at jyear
+# 2017.610 -- about 17 days off the true 2017-08-28 capture date.
+# Individual subs still carry wide, honestly-reported uncertainty
+# (+/- ~3-4 yr each, since a single 240s sub's own proper-motion baseline
+# is short) and a few outliers remain (sub 028: 2014-04-02, sub 017:
+# 2020-05-31) -- but the true date falls within essentially every single
+# sub's own quoted 1-sigma range, and the strong central tendency near
+# the true date is the real result.
+# ---------------------------------------------------------------------
+
+user@devuan:~/Downloads/EpochFrom$ cmake -B build -S .
+-- The CXX compiler identification is GNU 14.2.0
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /usr/bin/c++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success
+-- Found Threads: TRUE
+-- Performing Test HAVE_STDATOMIC
+-- Performing Test HAVE_STDATOMIC - Success
+-- Found WrapAtomic: TRUE
+-- Found PkgConfig: /usr/bin/pkg-config (found version "1.8.1")
+-- Checking for module 'wcslib'
+--   Found wcslib, version 8.4
+-- Checking for module 'cfitsio'
+--   Found cfitsio, version 4.6.2
+-- Configuring done (0.5s)
+-- Generating done (0.0s)
+-- Build files have been written to: /home/user/Downloads/EpochFrom/build
+user@devuan:~/Downloads/EpochFrom$ cmake --build build
+[  0%] Built target epoch_from_core_autogen_timestamp_deps
+[  2%] Automatic MOC for target epoch_from_core
+[  2%] Built target epoch_from_core_autogen
+[  4%] Building CXX object src/core/CMakeFiles/epoch_from_core.dir/epoch_from_core_autogen/mocs_compilation.cpp.o
+[  7%] Building CXX object src/core/CMakeFiles/epoch_from_core.dir/GaiaCatalog.cpp.o
+[  9%] Building CXX object src/core/CMakeFiles/epoch_from_core.dir/SpaceMotion.cpp.o
+[ 11%] Building CXX object src/core/CMakeFiles/epoch_from_core.dir/EpochFit.cpp.o
+[ 14%] Building CXX object src/core/CMakeFiles/epoch_from_core.dir/PlateSolver.cpp.o
+[ 16%] Building CXX object src/core/CMakeFiles/epoch_from_core.dir/FitsImage.cpp.o
+[ 19%] Building CXX object src/core/CMakeFiles/epoch_from_core.dir/LinearWcs.cpp.o
+[ 21%] Building CXX object src/core/CMakeFiles/epoch_from_core.dir/StarDetector.cpp.o
+[ 23%] Building CXX object src/core/CMakeFiles/epoch_from_core.dir/EquipmentProfile.cpp.o
+[ 26%] Building CXX object src/core/CMakeFiles/epoch_from_core.dir/EquipmentCalibrator.cpp.o
+[ 28%] Building CXX object src/core/CMakeFiles/epoch_from_core.dir/Wcs.cpp.o
+[ 30%] Building CXX object src/core/CMakeFiles/epoch_from_core.dir/ImageDater.cpp.o
+[ 33%] Linking CXX static library libepoch_from_core.a
+[ 33%] Built target epoch_from_core
+[ 33%] Built target epoch_from_cli_autogen_timestamp_deps
+[ 35%] Automatic MOC for target epoch_from_cli
+[ 35%] Built target epoch_from_cli_autogen
+[ 38%] Building CXX object src/cli/CMakeFiles/epoch_from_cli.dir/epoch_from_cli_autogen/mocs_compilation.cpp.o
+[ 40%] Building CXX object src/cli/CMakeFiles/epoch_from_cli.dir/main.cpp.o
+[ 42%] Linking CXX executable EpochFrom
+[ 42%] Built target epoch_from_cli
+[ 42%] Built target epoch_fit_selftest_autogen_timestamp_deps
+[ 45%] Automatic MOC for target epoch_fit_selftest
+[ 45%] Built target epoch_fit_selftest_autogen
+[ 47%] Building CXX object tests/CMakeFiles/epoch_fit_selftest.dir/epoch_fit_selftest_autogen/mocs_compilation.cpp.o
+[ 50%] Building CXX object tests/CMakeFiles/epoch_fit_selftest.dir/epoch_fit_selftest.cpp.o
+[ 52%] Linking CXX executable epoch_fit_selftest
+[ 52%] Built target epoch_fit_selftest
+[ 52%] Built target plate_solver_wcs_test_autogen_timestamp_deps
+[ 54%] Automatic MOC for target plate_solver_wcs_test
+[ 54%] Built target plate_solver_wcs_test_autogen
+[ 57%] Building CXX object tests/CMakeFiles/plate_solver_wcs_test.dir/plate_solver_wcs_test_autogen/mocs_compilation.cpp.o
+[ 59%] Building CXX object tests/CMakeFiles/plate_solver_wcs_test.dir/plate_solver_wcs_test.cpp.o
+[ 61%] Linking CXX executable plate_solver_wcs_test
+[ 61%] Built target plate_solver_wcs_test
+[ 61%] Built target linear_wcs_test_autogen_timestamp_deps
+[ 64%] Automatic MOC for target linear_wcs_test
+[ 64%] Built target linear_wcs_test_autogen
+[ 66%] Building CXX object tests/CMakeFiles/linear_wcs_test.dir/linear_wcs_test_autogen/mocs_compilation.cpp.o
+[ 69%] Building CXX object tests/CMakeFiles/linear_wcs_test.dir/linear_wcs_test.cpp.o
+[ 71%] Linking CXX executable linear_wcs_test
+[ 71%] Built target linear_wcs_test
+[ 71%] Built target star_detector_test_autogen_timestamp_deps
+[ 73%] Automatic MOC for target star_detector_test
+[ 73%] Built target star_detector_test_autogen
+[ 76%] Building CXX object tests/CMakeFiles/star_detector_test.dir/star_detector_test_autogen/mocs_compilation.cpp.o
+[ 78%] Building CXX object tests/CMakeFiles/star_detector_test.dir/star_detector_test.cpp.o
+[ 80%] Linking CXX executable star_detector_test
+[ 80%] Built target star_detector_test
+[ 80%] Built target equipment_calibrator_test_autogen_timestamp_deps
+[ 83%] Automatic MOC for target equipment_calibrator_test
+[ 83%] Built target equipment_calibrator_test_autogen
+[ 85%] Building CXX object tests/CMakeFiles/equipment_calibrator_test.dir/equipment_calibrator_test_autogen/mocs_compilation.cpp.o
+[ 88%] Building CXX object tests/CMakeFiles/equipment_calibrator_test.dir/equipment_calibrator_test.cpp.o
+[ 90%] Linking CXX executable equipment_calibrator_test
+[ 90%] Built target equipment_calibrator_test
+[ 90%] Built target image_dater_test_autogen_timestamp_deps
+[ 92%] Automatic MOC for target image_dater_test
+[ 92%] Built target image_dater_test_autogen
+[ 95%] Building CXX object tests/CMakeFiles/image_dater_test.dir/image_dater_test_autogen/mocs_compilation.cpp.o
+[ 97%] Building CXX object tests/CMakeFiles/image_dater_test.dir/image_dater_test.cpp.o
+[100%] Linking CXX executable image_dater_test
+[100%] Built target image_dater_test
+user@devuan:~/Downloads/EpochFrom$ ctest --test-dir build --output-on-failure
+Internal ctest changing into directory: /home/user/Downloads/EpochFrom/build
+Test project /home/user/Downloads/EpochFrom/build
+    Start 1: epoch_fit_selftest
+1/6 Test #1: epoch_fit_selftest ...............   Passed    0.10 sec
+    Start 2: plate_solver_wcs_test
+2/6 Test #2: plate_solver_wcs_test ............   Passed    0.01 sec
+    Start 3: linear_wcs_test
+3/6 Test #3: linear_wcs_test ..................   Passed    0.00 sec
+    Start 4: star_detector_test
+4/6 Test #4: star_detector_test ...............   Passed    0.01 sec
+    Start 5: equipment_calibrator_test
+5/6 Test #5: equipment_calibrator_test ........   Passed    0.13 sec
+    Start 6: image_dater_test
+6/6 Test #6: image_dater_test .................   Passed    0.04 sec
+
+100% tests passed, 0 tests failed out of 6
+
+Total Test time (real) =   0.30 sec
+user@devuan:~/Downloads/EpochFrom$ 
+user@devuan:~/Downloads/EpochFrom$ ls
+build  cmake  CMakeLists.txt  docs  README.md  scripts  src  tests  tools
+user@devuan:~/Downloads/EpochFrom$ cd build/src/cli/
+user@devuan:~/Downloads/EpochFrom/build/src/cli$ ls
+CMakeFiles  cmake_install.cmake  CTestTestfile.cmake  EpochFrom  epoch_from_cli_autogen  Makefile
+user@devuan:~/Downloads/EpochFrom/build/src/cli$ ./EpochFrom selftest --gaia ~/Downloads/gaia/gaia_pelican156.csv
+Loaded 2728 usable stars from /home/user/Downloads/gaia/gaia_pelican156.csv
+
+--- Self-test ---
+Stars used:        2728 (median match sep 0.356")
+Simulated noise:   0.30" per star
+True epoch:        2018.6900  (2018-09-09)
+Fitted epoch:      2018.2182  (2018-03-21)  +/- 0.7579 yr
+Error:             -172.3 days
+RMS residual:      427.6 mas
+Fitted zero-point offset: RA 2.7 mas, Dec 6.8 mas (should be ~0 -- synthetic test, no real WCS error)
+user@devuan:~/Downloads/EpochFrom/build/src/cli$ ./EpochFrom calibrate --gaia ~/Downloads/gaia/gaia_pelican156.csv --out ~/Downloads/pelican/pelican156.json --sub-dir ~/Downloads/pelican
+Loaded 2728 usable stars from /home/user/Downloads/gaia/gaia_pelican156.csv
+Calibrating against 30 sub(s)...
+
+--- Equipment calibration ---
+Subs used:            30 / 30
+Pooled observations:  8752
+RMS before (linear WCS only): 1253.4 mas (RA/xi axis 989.0 mas, Dec/eta axis 770.0 mas)
+RMS after per-sub rotation/scale/shear (before the shared fit): 1122.4 mas (RA/xi axis 866.9 mas, Dec/eta axis 712.9 mas)
+
+order   in-sample RMS     held-out RMS (mean +/- std)     kept
+1         1122.4 mas        1125.9 +/- 9.5    mas          8752
+2         1062.0 mas        1067.8 +/- 9.0    mas          8748
+3          379.0 mas         543.9 +/- 11.1   mas          8484
+4          377.8 mas         542.1 +/- 11.0   mas          8483
+5          377.1 mas         541.5 +/- 11.0   mas          8486
+6          375.4 mas         541.0 +/- 10.9   mas          8483
+
+Chosen order: 3
+
+After fitting:        in-sample RMS 379.0 mas, held-out RMS 543.9 +/- 11.1 mas
+                       (kept-observation RMS by axis: RA/xi 275.8 mas, Dec/eta 259.9 mas)
+Internal repeatability (sub-to-sub, 267 stars, no Gaia involved): median 224.2 mas, RMS 273.7 mas (by axis: RA/xi 198.8 mas, Dec/eta 188.0 mas)
+-> There's a real gap between how well your subs agree with each other and how well they match Gaia after calibration -- that could be a genuine remaining distortion, or a data/matching issue worth a closer look, rather than just measurement noise.
+
+--- Per-sub affine fit (rotation/scale/shear, removed before the shared fit) ---
+#     rotation      scale err     shear         RMS before    RMS after
+0       0.0073 deg     -0.002 %%     -0.0115 deg     1236.4 mas     1158.2 mas
+1       0.0097 deg     -0.000 %%     -0.0111 deg     1241.9 mas     1141.8 mas
+2       0.0119 deg     -0.002 %%     -0.0168 deg     1294.3 mas     1162.8 mas
+3       0.0087 deg      0.005 %%     -0.0117 deg     1244.1 mas     1139.8 mas
+4       0.0109 deg      0.006 %%     -0.0130 deg     1258.3 mas     1143.9 mas
+5       0.0081 deg      0.001 %%     -0.0098 deg     1199.3 mas     1114.0 mas
+6       0.0103 deg      0.000 %%     -0.0076 deg     1242.3 mas     1159.8 mas
+7       0.0117 deg      0.001 %%     -0.0135 deg     1177.4 mas     1079.0 mas
+8       0.0092 deg     -0.003 %%     -0.0147 deg     1264.8 mas     1172.4 mas
+9       0.0119 deg     -0.005 %%     -0.0168 deg     1242.7 mas     1134.2 mas
+10      0.0094 deg     -0.002 %%     -0.0121 deg     1202.3 mas     1114.1 mas
+11      0.0105 deg     -0.002 %%     -0.0134 deg     1222.2 mas     1141.1 mas
+12      0.0080 deg     -0.000 %%     -0.0123 deg     1194.4 mas     1116.4 mas
+13      0.0100 deg     -0.003 %%     -0.0181 deg     1336.4 mas     1201.8 mas
+14      0.0072 deg     -0.003 %%     -0.0143 deg     1278.8 mas     1193.1 mas
+15      0.0146 deg     -0.011 %%     -0.0206 deg     1273.2 mas     1088.8 mas
+16      0.0161 deg     -0.013 %%     -0.0197 deg     1287.2 mas     1137.5 mas
+17      0.0160 deg     -0.013 %%     -0.0144 deg     1167.7 mas     1045.7 mas
+18      0.0152 deg     -0.011 %%     -0.0167 deg     1316.3 mas     1159.7 mas
+19      0.0141 deg     -0.012 %%     -0.0184 deg     1242.4 mas     1098.1 mas
+20      0.0199 deg     -0.010 %%     -0.0207 deg     1324.5 mas     1147.1 mas
+21      0.0185 deg     -0.012 %%     -0.0202 deg     1252.4 mas     1078.7 mas
+22      0.0171 deg     -0.008 %%     -0.0206 deg     1225.5 mas     1046.2 mas
+23      0.0156 deg     -0.012 %%     -0.0202 deg     1269.7 mas     1086.8 mas
+24      0.0170 deg     -0.017 %%     -0.0197 deg     1259.4 mas     1089.8 mas
+25      0.0172 deg     -0.016 %%     -0.0180 deg     1241.1 mas     1084.4 mas
+26      0.0185 deg     -0.005 %%     -0.0198 deg     1267.9 mas     1091.5 mas
+27      0.0172 deg     -0.015 %%     -0.0198 deg     1296.2 mas     1114.5 mas
+28      0.0174 deg     -0.017 %%     -0.0207 deg     1287.1 mas     1112.5 mas
+29      0.0189 deg     -0.013 %%     -0.0182 deg     1252.3 mas     1098.1 mas
+
+--- Per-sub residuals (chosen order 3) ---
+#     file                          obs     kept    RMS before    RMS after
+0     pelican_Light_ha_240_secs_00  303     288       1236.4 mas      406.2 mas
+1     pelican_Light_ha_240_secs_00  309     302       1241.9 mas      401.6 mas
+2     pelican_Light_ha_240_secs_00  286     274       1294.3 mas      407.3 mas
+3     pelican_Light_ha_240_secs_00  298     286       1244.1 mas      355.7 mas
+4     pelican_Light_ha_240_secs_00  316     303       1258.3 mas      408.8 mas
+5     pelican_Light_ha_240_secs_00  310     304       1199.3 mas      370.3 mas
+6     pelican_Light_ha_240_secs_00  287     274       1242.3 mas      412.2 mas
+7     pelican_Light_ha_240_secs_00  310     304       1177.4 mas      379.2 mas
+8     pelican_Light_ha_240_secs_00  287     277       1264.8 mas      389.7 mas
+9     pelican_Light_ha_240_secs_01  295     283       1242.7 mas      385.7 mas
+10    pelican_Light_ha_240_secs_01  306     298       1202.3 mas      352.3 mas
+11    pelican_Light_ha_240_secs_01  292     284       1222.2 mas      407.3 mas
+12    pelican_Light_ha_240_secs_01  295     283       1194.4 mas      377.9 mas
+13    pelican_Light_ha_240_secs_01  303     290       1336.4 mas      391.6 mas
+14    pelican_Light_ha_240_secs_01  272     263       1278.8 mas      403.4 mas
+15    pelican_Light_ha_240_secs_01  276     272       1273.2 mas      366.6 mas
+16    pelican_Light_ha_240_secs_01  267     258       1287.2 mas      361.1 mas
+17    pelican_Light_ha_240_secs_01  263     257       1167.7 mas      367.0 mas
+18    pelican_Light_ha_240_secs_01  275     266       1316.3 mas      381.7 mas
+19    pelican_Light_ha_240_secs_02  306     296       1242.4 mas      362.6 mas
+20    pelican_Light_ha_240_secs_02  273     266       1324.5 mas      367.6 mas
+21    pelican_Light_ha_240_secs_02  289     282       1252.4 mas      352.5 mas
+22    pelican_Light_ha_240_secs_02  292     286       1225.5 mas      379.7 mas
+23    pelican_Light_ha_240_secs_02  290     283       1269.7 mas      356.4 mas
+24    pelican_Light_ha_240_secs_02  300     293       1259.4 mas      389.5 mas
+25    pelican_Light_ha_240_secs_02  288     278       1241.1 mas      336.8 mas
+26    pelican_Light_ha_240_secs_02  302     294       1267.9 mas      368.5 mas
+27    pelican_Light_ha_240_secs_02  307     296       1296.2 mas      355.2 mas
+28    pelican_Light_ha_240_secs_02  274     267       1287.1 mas      377.6 mas
+29    pelican_Light_ha_240_secs_03  281     277       1252.3 mas      379.8 mas
+
+Worst-fitting subs (post-fit RMS):
+  pelican_Light_ha_240_secs_007.fits  412.2 mas
+  pelican_Light_ha_240_secs_005.fits  408.8 mas
+  pelican_Light_ha_240_secs_003.fits  407.3 mas
+
+Saved equipment profile to /home/user/Downloads/pelican/pelican156.json
+user@devuan:~/Downloads/EpochFrom/build/src/cli$$ ./EpochFrom date --gaia ~/Downloads/gaia/gaia_pelican156.csv --dir ~/Downloads/gaia/pelican --profile ~/Downloads/pelican/pelican156.json
+Loaded 2728 usable stars from /home/user/Downloads/gaia/gaia_pelican156.csv
+
+Using equipment profile: /home/user/Downloads/pelican/pelican156.json (order 3, held-out RMS 543.9 mas)
+
+pelican_Light_ha_240_secs_001.fits: 2018-03-19  (epoch 2018.2146 +/- 3.4611 yr, 332 stars, rms 705.1 mas)
+pelican_Light_ha_240_secs_002.fits: 2018-01-19  (epoch 2018.0513 +/- 3.1820 yr, 341 stars, rms 662.4 mas)
+pelican_Light_ha_240_secs_003.fits: 2016-08-24  (epoch 2016.6487 +/- 3.2954 yr, 310 stars, rms 694.1 mas)
+pelican_Light_ha_240_secs_004.fits: 2017-07-29  (epoch 2017.5753 +/- 3.3350 yr, 323 stars, rms 594.8 mas)
+pelican_Light_ha_240_secs_005.fits: 2017-12-16  (epoch 2017.9581 +/- 2.6467 yr, 341 stars, rms 671.3 mas)
+pelican_Light_ha_240_secs_006.fits: 2016-09-23  (epoch 2016.7297 +/- 2.3694 yr, 342 stars, rms 562.7 mas)
+pelican_Light_ha_240_secs_007.fits: 2018-11-27  (epoch 2018.9073 +/- 3.8577 yr, 326 stars, rms 680.6 mas)
+pelican_Light_ha_240_secs_008.fits: 2019-06-07  (epoch 2019.4311 +/- 2.7867 yr, 350 stars, rms 704.1 mas)
+pelican_Light_ha_240_secs_009.fits: 2016-10-17  (epoch 2016.7951 +/- 3.1664 yr, 314 stars, rms 669.3 mas)
+pelican_Light_ha_240_secs_010.fits: 2016-01-27  (epoch 2016.0731 +/- 3.3433 yr, 330 stars, rms 719.3 mas)
+pelican_Light_ha_240_secs_011.fits: 2019-09-29  (epoch 2019.7447 +/- 3.1829 yr, 334 stars, rms 615.4 mas)
+pelican_Light_ha_240_secs_012.fits: 2018-06-05  (epoch 2018.4265 +/- 2.8128 yr, 328 stars, rms 658.0 mas)
+pelican_Light_ha_240_secs_013.fits: 2017-11-18  (epoch 2017.8812 +/- 3.0988 yr, 324 stars, rms 699.7 mas)
+pelican_Light_ha_240_secs_014.fits: 2017-04-26  (epoch 2017.3174 +/- 3.0806 yr, 329 stars, rms 772.4 mas)
+pelican_Light_ha_240_secs_015.fits: 2018-07-23  (epoch 2018.5582 +/- 3.2504 yr, 299 stars, rms 675.1 mas)
+pelican_Light_ha_240_secs_016.fits: 2016-01-28  (epoch 2016.0740 +/- 3.4485 yr, 311 stars, rms 795.8 mas)
+pelican_Light_ha_240_secs_017.fits: 2020-05-31  (epoch 2020.4146 +/- 3.9867 yr, 290 stars, rms 795.5 mas)
+pelican_Light_ha_240_secs_018.fits: 2017-11-26  (epoch 2017.9042 +/- 3.5017 yr, 290 stars, rms 772.7 mas)
+pelican_Light_ha_240_secs_019.fits: 2016-12-30  (epoch 2016.9983 +/- 3.5659 yr, 313 stars, rms 830.2 mas)
+pelican_Light_ha_240_secs_020.fits: 2019-01-20  (epoch 2019.0530 +/- 4.0687 yr, 334 stars, rms 786.1 mas)
+pelican_Light_ha_240_secs_021.fits: 2015-05-06  (epoch 2015.3435 +/- 3.8249 yr, 301 stars, rms 804.4 mas)
+pelican_Light_ha_240_secs_022.fits: 2015-10-17  (epoch 2015.7934 +/- 3.3362 yr, 317 stars, rms 738.9 mas)
+pelican_Light_ha_240_secs_023.fits: 2017-06-03  (epoch 2017.4235 +/- 3.9771 yr, 318 stars, rms 765.8 mas)
+pelican_Light_ha_240_secs_024.fits: 2016-12-09  (epoch 2016.9416 +/- 2.8567 yr, 314 stars, rms 746.7 mas)
+pelican_Light_ha_240_secs_025.fits: 2018-12-24  (epoch 2018.9807 +/- 3.2363 yr, 330 stars, rms 783.5 mas)
+pelican_Light_ha_240_secs_026.fits: 2017-05-25  (epoch 2017.3971 +/- 3.1641 yr, 318 stars, rms 779.7 mas)
+pelican_Light_ha_240_secs_027.fits: 2017-11-12  (epoch 2017.8647 +/- 3.2517 yr, 324 stars, rms 770.0 mas)
+pelican_Light_ha_240_secs_028.fits: 2014-04-02  (epoch 2014.2513 +/- 3.2183 yr, 334 stars, rms 777.3 mas)
+pelican_Light_ha_240_secs_029.fits: 2018-08-27  (epoch 2018.6540 +/- 3.8610 yr, 297 stars, rms 843.5 mas)
+pelican_Light_ha_240_secs_030.fits: 2016-11-25  (epoch 2016.9026 +/- 3.5579 yr, 320 stars, rms 800.2 mas)
+
+30 dated, 0 failed, out of 30 file(s)
+

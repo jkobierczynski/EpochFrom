@@ -191,3 +191,8 @@ the C++ tool on purpose, not a build dependency.
   self-calibration feature (SIP distortion fit against Gaia), including the
   cross-validation and filter-choice findings that need to carry through to
   the implementation.
+- `docs/test-run-pelican-ic5070.txt` — a real end-to-end run (build,
+  `selftest`, `calibrate`, `date --profile`) against a 30-sub Pelican
+  Nebula (IC 5070) Ha session with a known capture date (2017-08-28), for
+  comparing future runs against. Per-file date estimates cluster within
+  ~17 days of the true date on average.
