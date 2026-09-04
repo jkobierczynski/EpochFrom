@@ -193,7 +193,9 @@ the C++ tool on purpose, not a build dependency.
   the implementation.
 - `docs/test-run-pelican-ic5070.txt` — a real end-to-end run (build,
   `selftest`, `calibrate`, `date --profile`) against a 30-sub Pelican
-  Nebula (IC 5070) Ha session with a known capture date (2017-08-28), for
-  comparing future runs against. Per-file date estimates cluster within
+  Nebula (IC 5070) Ha session with a known capture date (2017-08-28,
+  processed image
+  https://www.flickr.com/photos/jurgenk2/36828617626/in/album-72157646734292486),
+  for comparing future runs against. Per-file date estimates cluster within
   ~17 days of the true date on average (mean offset 17 d; per-frame
   uncertainty ~3 yr).
