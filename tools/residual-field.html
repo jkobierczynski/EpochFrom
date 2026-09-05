@@ -6,7 +6,7 @@
     --ink:#172033; --ink-muted:#5B6780; --ink-faint:#8892A6;
     --grid:#D6DDE7; --line:#C7D0DE;
     --xi:#B9782F; --eta:#00879E; --accent:#B9782F;
-    --clip:#97A1B5;
+    --clip:#97A1B5; --warn:#C2410C;
     --font-sans:'IBM Plex Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
     --font-mono:'IBM Plex Mono',ui-monospace,'SF Mono',Menlo,Consolas,monospace;
     color-scheme: light dark;
@@ -17,7 +17,7 @@
       --ink:#E8ECF2; --ink-muted:#94A0B8; --ink-faint:#5E6B85;
       --grid:#263049; --line:#2E3A56;
       --xi:#B87F2A; --eta:#00879E; --accent:#B87F2A;
-      --clip:#5C6884;
+      --clip:#5C6884; --warn:#E0703A;
     }
   }
   :root[data-theme="dark"]{
@@ -25,7 +25,7 @@
     --ink:#E8ECF2; --ink-muted:#94A0B8; --ink-faint:#5E6B85;
     --grid:#263049; --line:#2E3A56;
     --xi:#B87F2A; --eta:#00879E; --accent:#B87F2A;
-    --clip:#5C6884;
+    --clip:#5C6884; --warn:#E0703A;
   }
 
   *{box-sizing:border-box;}
@@ -576,6 +576,44 @@
     var s=0; for (var i=0;i<values.length;i++) s+=values[i];
     return s/values.length;
   }
+  function percentile(values, p){
+    if (!values.length) return 0;
+    var arr = values.slice().sort(function(a,b){ return a-b; });
+    var idx = Math.min(arr.length-1, Math.max(0, Math.round(p*(arr.length-1))));
+    return arr[idx];
+  }
+  // A handful of catastrophic values (a bad cross-match, a failed sub) can
+  // otherwise set every chart's scale by themselves -- one point at
+  // 500,000,000 mas makes every real, few-tens-of-mas residual invisible.
+  // A fixed percentile cutoff doesn't work here because some of these
+  // charts aggregate down to very few values (one per sub, maybe a dozen),
+  // too few for a percentile to isolate a single outlier from the rest.
+  // Instead, walk down from the largest value: as long as it's both a
+  // clear multiple of the median (>=5x -- well outside any plausible
+  // "normal" spread) AND a clear jump above the next value down (>=3x --
+  // an actual gap, not just a smoothly-tailed distribution), treat it as
+  // an outlier, drop it, and check the next one. Everything else keeps
+  // using its true max, so an ordinary (if wide) distribution renders
+  // exactly as before. Callers still draw off-scale points/bars -- clamped
+  // to the cap, marked distinctly -- so nothing just disappears, and
+  // tooltips keep showing the real value.
+  function robustMax(values){
+    var finite = values.filter(function(v){ return isFinite(v); });
+    if (!finite.length) return {cap: 1, nAbove: 0, trueMax: 1};
+    var sorted = finite.slice().sort(function(a,b){ return a-b; });
+    var n = sorted.length;
+    var trueMax = sorted[n-1];
+    if (n < 2 || trueMax <= 0) return {cap: trueMax || 1, nAbove: 0, trueMax: trueMax};
+    var median = sorted[Math.floor(n/2)];
+    var cap = trueMax, nAbove = 0, i = n - 1;
+    while (i > 0 && median > 0 && sorted[i] >= median * 5 && sorted[i] >= sorted[i-1] * 3){
+      nAbove++;
+      cap = sorted[i-1];
+      i--;
+    }
+    if (cap <= 0) cap = median > 0 ? median : trueMax;
+    return {cap: cap, nAbove: nAbove, trueMax: trueMax};
+  }
 
   function svgEl(tag, attrs){
     var el = document.createElementNS('http://www.w3.org/2000/svg', tag);
@@ -610,8 +648,14 @@
     var f = fieldsFor(state.mode);
     var rows = state.rows;
     var kept = rows.filter(function(r){ return r.kept; });
-    var xi = rows.map(function(r){ return r[f.dxi]; });
-    var eta = rows.map(function(r){ return r[f.deta]; });
+    // RMS here means the same thing `calibrate`'s own report means by it --
+    // computed over kept (not sigma-clipped) observations, same as the
+    // CLI's "kept-observation RMS by axis" line -- not the full pooled set,
+    // which on purpose still includes whatever got clipped from the fit
+    // (for this tool's own diagnostic use) and would otherwise let a single
+    // clipped outlier make the headline number meaningless.
+    var xi = kept.map(function(r){ return r[f.dxi]; });
+    var eta = kept.map(function(r){ return r[f.deta]; });
     var rmsXi = rms(xi), rmsEta = rms(eta);
     var combined = Math.sqrt(rmsXi*rmsXi + rmsEta*rmsEta);
     var subs = {}; rows.forEach(function(r){ subs[r.sub] = true; });
@@ -645,7 +689,8 @@
     var rows = state.rows;
 
     var maxR = Math.max.apply(null, rows.map(function(r){ return r.r; }));
-    var maxMag = Math.max.apply(null, rows.map(function(r){ return Math.hypot(r[f.dxi], r[f.deta]); })) || 1;
+    var magScale = robustMax(rows.map(function(r){ return Math.hypot(r[f.dxi], r[f.deta]); }));
+    var maxMag = magScale.cap;
 
     var plotW = W - pad*2, plotH = H - pad*2 - 30;
     var scale = (Math.min(plotW, plotH)/2) / (maxR * 1.08);
@@ -673,23 +718,31 @@
     var g = svgEl('g', {});
     pts.forEach(function(r){
       var mag = Math.hypot(r[f.dxi], r[f.deta]);
+      var offScale = mag > maxMag;
+      // Off-scale points are drawn at the capped length (direction
+      // preserved) rather than at their true, chart-busting length -- see
+      // robustMax's comment for why.
+      var dispMag = Math.min(mag, maxMag);
+      var ux = mag > 0 ? r[f.dxi]/mag : 0, uy = mag > 0 ? r[f.deta]/mag : 0;
       var x0 = px(r.u), y0 = py(r.v);
-      var x1 = x0 + r[f.dxi]*arrowScale, y1 = y0 - r[f.deta]*arrowScale;
+      var x1 = x0 + ux*dispMag*arrowScale, y1 = y0 - uy*dispMag*arrowScale;
       var t = Math.min(1, mag/maxMag);
-      var col = mixColor(cssVar('--surface-2'), cssVar('--xi'), 0.25 + 0.75*t);
+      var col = offScale ? cssVar('--warn') : mixColor(cssVar('--surface-2'), cssVar('--xi'), 0.25 + 0.75*t);
       var op = r.kept ? 1 : 0.35;
-      var line = svgEl('line', {x1:x0, y1:y0, x2:x1, y2:y1, stroke:col, 'stroke-width': r.kept ? 1.3 : 1, 'stroke-linecap':'round', opacity:op});
-      var tip = 'sub '+r.sub+'  u='+fmt(r.u,0)+' v='+fmt(r.v,0)+'\nξ='+fmt(r[f.dxi],1)+' mas  η='+fmt(r[f.deta],1)+' mas'+(r.kept?'':'  (clipped)');
-      var lineTip = document.createElementNS('http://www.w3.org/2000/svg','title'); lineTip.textContent = tip;
-      line.appendChild(lineTip);
+      var tip = 'sub '+r.sub+'  u='+fmt(r.u,0)+' v='+fmt(r.v,0)+'\nξ='+fmt(r[f.dxi],1)+' mas  η='+fmt(r[f.deta],1)+' mas'+(r.kept?'':'  (clipped)')+(offScale?'\noff-scale: true magnitude '+fmt(mag,0)+' mas (capped at '+fmt(maxMag,0)+' for display)':'');
+      var lineAttrs = {x1:x0, y1:y0, x2:x1, y2:y1, stroke:col, 'stroke-width': offScale ? 1.8 : (r.kept ? 1.3 : 1), 'stroke-linecap':'round', opacity:op};
+      if (offScale) lineAttrs['stroke-dasharray'] = '3,2';
+      var line = svgEl('line', lineAttrs);
+      withTip(line, tip);
       g.appendChild(line);
       var ang = Math.atan2(y1-y0, x1-x0);
       var ah = 3.4;
       var ax1 = x1 - ah*Math.cos(ang-0.4), ay1 = y1 - ah*Math.sin(ang-0.4);
       var ax2 = x1 - ah*Math.cos(ang+0.4), ay2 = y1 - ah*Math.sin(ang+0.4);
       var head = svgEl('polygon', {points:x1+','+y1+' '+ax1+','+ay1+' '+ax2+','+ay2, fill:col, opacity:op});
-      var headTip = document.createElementNS('http://www.w3.org/2000/svg','title'); headTip.textContent = tip; head.appendChild(headTip);
+      withTip(head, tip);
       g.appendChild(head);
+      if (offScale) withTip(g.appendChild(svgEl('circle', {cx:x1, cy:y1, r:3.2, fill:'none', stroke:cssVar('--warn'), 'stroke-width':1.2, opacity:op})), tip);
       g.appendChild(svgEl('circle', {cx:x0, cy:y0, r:1.3, fill:cssVar('--ink-faint'), opacity:op*0.8}));
     });
     svg.appendChild(g);
@@ -714,7 +767,18 @@
     legend.appendChild(grad);
     var note = document.createElement('span');
     note.textContent = 'arrow length: ' + scaleLabel + ' · faint arrows = clipped from the fit';
+    if (magScale.nAbove > 0){
+      note.textContent += ' · ' + magScale.nAbove + ' point' + (magScale.nAbove===1?'':'s') +
+        ' exceed ' + fmt(magScale.cap,0) + ' mas (worst ' + fmt(magScale.trueMax,0) +
+        ' mas) — shown capped and outlined, not to scale';
+    }
     legend.appendChild(note);
+    if (magScale.nAbove > 0){
+      var warnItem = document.createElement('span');
+      warnItem.style.cssText = 'display:inline-flex;align-items:center;gap:5px;color:'+cssVar('--warn')+';';
+      warnItem.innerHTML = '<span style="width:10px;height:2px;background:'+cssVar('--warn')+';display:inline-block;"></span> off-scale point';
+      legend.appendChild(warnItem);
+    }
   }
 
   function textAxis(svg, x, y, str){
@@ -748,8 +812,18 @@
     var rows = state.rows;
     var xi = rows.map(function(r){ return r[f.dxi]; });
     var eta = rows.map(function(r){ return r[f.deta]; });
+    // Bars themselves cover every pooled point (clipped included -- that's
+    // useful to see), but the RMS printed under each row means the same
+    // thing it does everywhere else in this tool: kept observations only.
+    var keptRows = rows.filter(function(r){ return r.kept; });
+    var rmsXiKept = rms(keptRows.map(function(r){ return r[f.dxi]; }));
+    var rmsEtaKept = rms(keptRows.map(function(r){ return r[f.deta]; }));
     var all = xi.concat(eta);
-    var lo = Math.min.apply(null, all), hi = Math.max.apply(null, all);
+    // Percentile-based range, not true min/max: one catastrophic residual
+    var trueLo = Math.min.apply(null, all), trueHi = Math.max.apply(null, all);
+    var lo = percentile(all, 0.02), hi = percentile(all, 0.98);
+    if (hi <= lo) { lo = trueLo; hi = trueHi; }
+    var clipped = (trueLo < lo) || (trueHi > hi);
     var pad = Math.max(1, (hi-lo)*0.06);
     lo -= pad; hi += pad;
 
@@ -788,8 +862,8 @@
       g.appendChild(textEl(m.l, y0+rowH-2, label+'  ·  RMS '+fmt(rmsVal,1)+' mas', {fill:cssVar('--ink-muted'), 'font-size':10.5, 'font-family':'var(--font-mono)'}));
       svg.appendChild(g);
     }
-    row(xi, bx, m.t, cssVar('--xi'), 'ξ', rms(xi));
-    row(eta, be, m.t+rowH+16, cssVar('--eta'), 'η', rms(eta));
+    row(xi, bx, m.t, cssVar('--xi'), 'ξ', rmsXiKept);
+    row(eta, be, m.t+rowH+16, cssVar('--eta'), 'η', rmsEtaKept);
 
     // shared x axis ticks
     var ticks = 5;
@@ -799,6 +873,9 @@
       svg.appendChild(textEl(x, H-m.b+34, fmt(val,0), {fill:cssVar('--ink-faint'), 'font-size':9.5, 'text-anchor':'middle', 'font-family':'var(--font-mono)'}));
     }
     svg.appendChild(textEl(W/2, H-8, 'residual, mas', {fill:cssVar('--ink-muted'), 'font-size':10.5, 'text-anchor':'middle'}));
+    if (clipped){
+      svg.appendChild(textEl(W-m.r, m.t+8, 'range clipped to 2nd–98th pct. (extremes in outer bins)', {fill:cssVar('--warn'), 'font-size':9.5, 'text-anchor':'end', 'font-family':'var(--font-sans)'}));
+    }
   }
 
   // ---------------- radius trend ----------------
@@ -809,7 +886,8 @@
     var rows = state.rows;
     var mags = rows.map(function(r){ return Math.hypot(r[f.dxi], r[f.deta]); });
     var radii = rows.map(function(r){ return r.r; });
-    var maxR = Math.max.apply(null, radii), maxM = Math.max.apply(null, mags) || 1;
+    var magScale = robustMax(mags);
+    var maxR = Math.max.apply(null, radii), maxM = magScale.cap;
 
     var W=420,H=320,m={l:40,r:14,t:14,b:36};
     var plotW=W-m.l-m.r, plotH=H-m.t-m.b;
@@ -830,10 +908,17 @@
     var idxAll = rows.map(function(_,i){return i;});
     var idxSample = sample(idxAll, 1200);
     idxSample.forEach(function(i){
-      var dot = svgEl('circle', {cx:px(radii[i]), cy:py(mags[i]), r:1.6, fill:cssVar('--ink-faint'), opacity:0.5});
-      withTip(dot, 'sub '+rows[i].sub+'  r='+fmt(radii[i],0)+' px  |resid|='+fmt(mags[i],1)+' mas');
+      var offScale = mags[i] > maxM;
+      var dotAttrs = {cx:px(radii[i]), cy:py(Math.min(mags[i], maxM)), r: offScale ? 2.6 : 1.6, opacity: offScale ? 0.9 : 0.5};
+      if (offScale){ dotAttrs.fill = 'none'; dotAttrs.stroke = cssVar('--warn'); dotAttrs['stroke-width'] = 1.2; }
+      else { dotAttrs.fill = cssVar('--ink-faint'); }
+      var dot = svgEl('circle', dotAttrs);
+      withTip(dot, 'sub '+rows[i].sub+'  r='+fmt(radii[i],0)+' px  |resid|='+fmt(mags[i],1)+' mas'+(offScale?' (off-scale, capped for display)':''));
       svg.appendChild(dot);
     });
+    if (magScale.nAbove > 0){
+      svg.appendChild(textEl(m.l+plotW, m.t+12, magScale.nAbove + ' point' + (magScale.nAbove===1?'':'s') + ' off-scale (worst ' + fmt(magScale.trueMax,0) + ' mas)', {fill:cssVar('--warn'), 'font-size':10, 'text-anchor':'end', 'font-family':'var(--font-mono)'}));
+    }
 
     // binned mean trend
     var NB = 9;
@@ -847,7 +932,7 @@
       if (!counts[b]) continue;
       var rMid = (b+0.5)/NB*maxR;
       var vMean = sums[b]/counts[b];
-      pathPts.push([px(rMid), py(vMean), rMid, vMean, counts[b]]);
+      pathPts.push([px(rMid), py(Math.min(vMean, maxM)), rMid, vMean, counts[b]]);
     }
     if (pathPts.length>1){
       var d = pathPts.map(function(p,i){ return (i===0?'M':'L')+p[0].toFixed(1)+','+p[1].toFixed(1); }).join(' ');
@@ -892,12 +977,16 @@
       return {sid:sid, meanXi:mean(xi), meanEta:mean(eta), rms:rms(mags), n:rs.length};
     });
 
-    var maxOffset = Math.max.apply(null, perSub.map(function(s){ return Math.max(Math.abs(s.meanXi), Math.abs(s.meanEta)); })) || 1;
-    var maxRms = Math.max.apply(null, perSub.map(function(s){ return s.rms; })) || 1;
-    var meanRms = mean(perSub.map(function(s){return s.rms;}));
+    var offsetScale = robustMax(perSub.map(function(s){ return Math.max(Math.abs(s.meanXi), Math.abs(s.meanEta)); }));
+    var rmsScale = robustMax(perSub.map(function(s){ return s.rms; }));
+    var maxOffset = offsetScale.cap;
+    var maxRms = rmsScale.cap;
     var worst = perSub.reduce(function(a,b){ return b.rms>a.rms?b:a; }, perSub[0]);
     var minRms = Math.min.apply(null, perSub.map(function(s){ return s.rms; }));
-    var rmsRatio = minRms > 0 ? maxRms / minRms : NaN;
+    // The true worst/best ratio, not maxRms/minRms -- maxRms above is a
+    // display cap now (see robustMax), and using it here would let a
+    // capped-for-display outlier sub quietly read as "nothing stands out."
+    var rmsRatio = minRms > 0 ? worst.rms / minRms : NaN;
     var outlierStands = perSub.length > 2 && isFinite(rmsRatio) && rmsRatio >= 1.6;
 
     var groupW = Math.max(34, Math.min(64, 900/perSub.length));
@@ -921,29 +1010,42 @@
     perSub.forEach(function(s, i){
       var gx = m.l + i*groupW;
       var barW = groupW*0.28, pairGap=3;
-      var hXi = (s.meanXi/maxOffset) * (upperH*0.9);
-      var hEta = (s.meanEta/maxOffset) * (upperH*0.9);
-      var barXi = svgEl('rect', {x:gx+groupW/2-barW-pairGap/2, y:Math.min(zeroY,zeroY-hXi), width:barW, height:Math.abs(hXi), fill:cssVar('--xi'), opacity:0.9});
-      withTip(barXi, 'sub '+s.sid+'  mean ξ='+fmt(s.meanXi,1)+' mas  (n='+s.n+')');
+      var xiOff = Math.abs(s.meanXi) > maxOffset, etaOff = Math.abs(s.meanEta) > maxOffset;
+      var hXi = (Math.sign(s.meanXi) * Math.min(Math.abs(s.meanXi), maxOffset) / maxOffset) * (upperH*0.9);
+      var hEta = (Math.sign(s.meanEta) * Math.min(Math.abs(s.meanEta), maxOffset) / maxOffset) * (upperH*0.9);
+      var barXi = svgEl('rect', {x:gx+groupW/2-barW-pairGap/2, y:Math.min(zeroY,zeroY-hXi), width:barW, height:Math.abs(hXi), fill: xiOff ? cssVar('--warn') : cssVar('--xi'), opacity:0.9});
+      withTip(barXi, 'sub '+s.sid+'  mean ξ='+fmt(s.meanXi,1)+' mas  (n='+s.n+')'+(xiOff?'  -- off-scale, capped for display':''));
       svg.appendChild(barXi);
-      var barEta = svgEl('rect', {x:gx+groupW/2+pairGap/2, y:Math.min(zeroY,zeroY-hEta), width:barW, height:Math.abs(hEta), fill:cssVar('--eta'), opacity:0.9});
-      withTip(barEta, 'sub '+s.sid+'  mean η='+fmt(s.meanEta,1)+' mas  (n='+s.n+')');
+      var barEta = svgEl('rect', {x:gx+groupW/2+pairGap/2, y:Math.min(zeroY,zeroY-hEta), width:barW, height:Math.abs(hEta), fill: etaOff ? cssVar('--warn') : cssVar('--eta'), opacity:0.9});
+      withTip(barEta, 'sub '+s.sid+'  mean η='+fmt(s.meanEta,1)+' mas  (n='+s.n+')'+(etaOff?'  -- off-scale, capped for display':''));
       svg.appendChild(barEta);
 
-      var rH = (s.rms/maxRms) * (lowerH*0.92);
+      var rmsOff = s.rms > maxRms;
+      var rH = (Math.min(s.rms, maxRms)/maxRms) * (lowerH*0.92);
       var isWorst = s.sid === worst.sid && outlierStands;
-      var barRms = svgEl('rect', {x:gx+groupW/2-barW, y: rmsBase - rH, width: barW*2, height: rH, fill: isWorst ? cssVar('--accent') : cssVar('--ink-faint'), opacity: isWorst?0.95:0.55});
-      withTip(barRms, 'sub '+s.sid+'  RMS '+fmt(s.rms,1)+' mas');
+      var barRms = svgEl('rect', {x:gx+groupW/2-barW, y: rmsBase - rH, width: barW*2, height: rH, fill: rmsOff ? cssVar('--warn') : (isWorst ? cssVar('--accent') : cssVar('--ink-faint')), opacity: (isWorst||rmsOff)?0.95:0.55});
+      withTip(barRms, 'sub '+s.sid+'  RMS '+fmt(s.rms,1)+' mas'+(rmsOff?'  -- off-scale, capped for display':''));
       svg.appendChild(barRms);
 
       svg.appendChild(textEl(gx+groupW/2, H-m.b+14, String(s.sid), {fill:cssVar('--ink-muted'),'font-size':10,'text-anchor':'middle','font-family':'var(--font-mono)'}));
-      if (isWorst){
+      if (isWorst && !rmsOff){
         svg.appendChild(textEl(gx+groupW/2, rmsBase - rH - 6, 'worst', {fill:cssVar('--accent'),'font-size':9,'text-anchor':'middle','font-family':'var(--font-sans)'}));
+      }
+      if (rmsOff){
+        svg.appendChild(textEl(gx+groupW/2, rmsBase - rH - 6, 'off-scale', {fill:cssVar('--warn'),'font-size':9,'text-anchor':'middle','font-family':'var(--font-sans)'}));
       }
     });
     svg.appendChild(textEl(W/2, H-4, 'sub index', {fill:cssVar('--ink-muted'),'font-size':10.5,'text-anchor':'middle'}));
+    if (offsetScale.nAbove > 0 || rmsScale.nAbove > 0){
+      svg.appendChild(textEl(W-m.r, m.t, (offsetScale.nAbove+rmsScale.nAbove) + ' bar' + ((offsetScale.nAbove+rmsScale.nAbove)===1?'':'s') + ' off-scale, capped', {fill:cssVar('--warn'),'font-size':10,'text-anchor':'end','font-family':'var(--font-mono)'}));
+    }
 
-    var word = !isFinite(rmsRatio) ? '' : (!outlierStands ? 'fairly even across the session — no single sub stands out.' : 'sub '+worst.sid+' is a clear outlier ('+fmt(worst.rms,1)+' mas vs. '+fmt(meanRms,1)+' mas mean) — worth checking that exposure specifically.');
+    // Compare the worst sub against the OTHER subs' mean, not the mean of
+    // all subs including it -- with few subs, folding the outlier itself
+    // back into "the mean" it's being compared to reads as nonsense (a
+    // mean nearly as huge as the outlier).
+    var othersMeanRms = mean(perSub.filter(function(s){ return s.sid !== worst.sid; }).map(function(s){return s.rms;}));
+    var word = !isFinite(rmsRatio) ? '' : (!outlierStands ? 'fairly even across the session — no single sub stands out.' : 'sub '+worst.sid+' is a clear outlier ('+fmt(worst.rms,1)+' mas vs. '+fmt(othersMeanRms,1)+' mas mean of the rest) — worth checking that exposure specifically.');
     document.getElementById('subreadout').innerHTML =
       'worst/best sub RMS ratio <span class="mono">'+ (isFinite(rmsRatio)?fmt(rmsRatio,2)+'×':'—') +'</span> — ' + word;
   }
