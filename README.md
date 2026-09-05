@@ -97,14 +97,21 @@ longer requires a terminal.
 A **Project** bar sits above the tabs holding a base directory and a
 filter (Ha/OIII/SII/L/R/G/B/... or blank), persisted between runs. Every
 tab has a "Fill from Project" button that composes that tab's paths from
-it: subs directory is `<base>/<filter>` (or `<base>` itself with no
-filter), Gaia catalog is `<base>/gaia.csv` and equipment profile is
+it: subs directory defaults to `<base>/<filter>` (or `<base>` itself with
+no filter), Gaia catalog is `<base>/gaia.csv` and equipment profile is
 `<base>/profile.json` (both shared across filters, since neither the star
 field nor the rig's own distortion depends on which filter a sub was shot
-through), and a calibration's residuals CSV is
+through), and a calibration's residuals CSV defaults to
 `<base>/<filter>_residuals.csv`. It's a one-click convenience, not a
 constraint -- every field it fills stays a plain, freely-editable path
 afterward, and nothing requires using it at all.
+
+The subs directory and residuals filename are actually **patterns**, shown
+as their own fields in the Project bar (default `%filter%` and
+`%filter%_residuals.csv`), where every `%filter%` is replaced with the
+filter selected. If your capture software doesn't name a filter's session
+folder exactly `Ha` -- say it's `Light_Ha_600_secs` instead -- set the dir
+pattern to `Light_%filter%_600_secs` rather than renaming folders to match.
 
 Each tab's options sit in a scroll area above its command-output log, with
 the divider between them a `QSplitter` -- drag it, or click one of the
