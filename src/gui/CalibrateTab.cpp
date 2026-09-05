@@ -1,5 +1,8 @@
 #include "CalibrateTab.h"
 #include "CalibrateWorker.h"
+#include "NoWheelWidgets.h"
+#include "ProjectBar.h"
+#include "TabLayoutHelpers.h"
 
 #include <QCheckBox>
 #include <QComboBox>
@@ -18,6 +21,7 @@
 #include <QScrollArea>
 #include <QScrollBar>
 #include <QSpinBox>
+#include <QSplitter>
 #include <QThread>
 #include <QVBoxLayout>
 
@@ -35,7 +39,8 @@ QWidget *rowOf(std::initializer_list<QWidget *> widgets)
 }
 } // namespace
 
-CalibrateTab::CalibrateTab(QWidget *parent) : QWidget(parent)
+CalibrateTab::CalibrateTab(ProjectBar *projectBar, QWidget *parent)
+    : QWidget(parent), projectBar_(projectBar)
 {
     dirEdit_ = new QLineEdit;
     gaiaEdit_ = new QLineEdit;
@@ -45,9 +50,14 @@ CalibrateTab::CalibrateTab(QWidget *parent) : QWidget(parent)
     auto *browseGaiaButton = new QPushButton(tr("Browse..."));
     auto *browseOutButton = new QPushButton(tr("Browse..."));
     auto *browseCsvButton = new QPushButton(tr("Browse..."));
+    auto *fromProjectButton = new QPushButton(tr("Fill from Project"));
+    fromProjectButton->setToolTip(
+        tr("Use the project bar's base directory + filter to fill the subs directory, Gaia "
+           "catalog, output profile, and residuals CSV below"));
 
     auto *inputGroup = new QGroupBox(tr("Subs, Gaia catalog, and output"));
     auto *inputForm = new QFormLayout(inputGroup);
+    inputForm->addRow(QString(), fromProjectButton);
     inputForm->addRow(tr("Directory of subs:"), rowOf({dirEdit_, browseDirButton}));
     inputForm->addRow(tr("Gaia catalog CSV:"), rowOf({gaiaEdit_, browseGaiaButton}));
     inputForm->addRow(tr("Save profile as:"), rowOf({outProfileEdit_, browseOutButton}));
@@ -55,26 +65,26 @@ CalibrateTab::CalibrateTab(QWidget *parent) : QWidget(parent)
 
     labelEdit_ = new QLineEdit;
     labelEdit_->setPlaceholderText(tr("e.g. 800mm reflector + Paracorr, ASI1600MM"));
-    apertureSpin_ = new QDoubleSpinBox;
+    apertureSpin_ = new NoWheelDoubleSpinBox;
     apertureSpin_->setRange(0.0, 10000.0);
     apertureSpin_->setSuffix(tr(" mm aperture"));
-    focalLengthSpin_ = new QDoubleSpinBox;
+    focalLengthSpin_ = new NoWheelDoubleSpinBox;
     focalLengthSpin_->setRange(0.0, 100000.0);
     focalLengthSpin_->setSuffix(tr(" mm focal length"));
-    correctorTypeCombo_ = new QComboBox;
+    correctorTypeCombo_ = new NoWheelComboBox;
     correctorTypeCombo_->addItems({tr("unknown"), tr("none"), tr("refractive"), tr("reflective"), tr("catadioptric")});
     cameraEdit_ = new QLineEdit;
-    pixelSizeSpin_ = new QDoubleSpinBox;
+    pixelSizeSpin_ = new NoWheelDoubleSpinBox;
     pixelSizeSpin_->setRange(0.0, 1000.0);
     pixelSizeSpin_->setDecimals(2);
     pixelSizeSpin_->setSuffix(tr(" um pixel size"));
     filterEdit_ = new QLineEdit;
     useValidFromCheck_ = new QCheckBox(tr("Valid from"));
-    validFromEdit_ = new QDateEdit(QDate::currentDate());
+    validFromEdit_ = new NoWheelDateEdit(QDate::currentDate());
     validFromEdit_->setCalendarPopup(true);
     validFromEdit_->setEnabled(false);
     useValidToCheck_ = new QCheckBox(tr("Valid to"));
-    validToEdit_ = new QDateEdit(QDate::currentDate());
+    validToEdit_ = new NoWheelDateEdit(QDate::currentDate());
     validToEdit_->setCalendarPopup(true);
     validToEdit_->setEnabled(false);
 
@@ -88,24 +98,24 @@ CalibrateTab::CalibrateTab(QWidget *parent) : QWidget(parent)
     metaForm->addRow(useValidFromCheck_, validFromEdit_);
     metaForm->addRow(useValidToCheck_, validToEdit_);
 
-    fwhmSpin_ = new QDoubleSpinBox;
+    fwhmSpin_ = new NoWheelDoubleSpinBox;
     fwhmSpin_->setRange(0.5, 100.0);
     fwhmSpin_->setValue(4.0);
     fwhmSpin_->setSuffix(tr(" px FWHM"));
-    thresholdSpin_ = new QDoubleSpinBox;
+    thresholdSpin_ = new NoWheelDoubleSpinBox;
     thresholdSpin_->setRange(0.5, 100.0);
     thresholdSpin_->setValue(6.0);
     thresholdSpin_->setSuffix(tr(" sigma threshold"));
-    matchArcsecSpin_ = new QDoubleSpinBox;
+    matchArcsecSpin_ = new NoWheelDoubleSpinBox;
     matchArcsecSpin_->setRange(0.1, 60.0);
     matchArcsecSpin_->setValue(3.0);
     matchArcsecSpin_->setSuffix(tr(" arcsec match tol."));
-    maxOrderSpin_ = new QSpinBox;
+    maxOrderSpin_ = new NoWheelSpinBox;
     maxOrderSpin_->setRange(1, 10);
     maxOrderSpin_->setValue(6);
     perSubAffineCheck_ = new QCheckBox(tr("Fit and remove each sub's own rotation/scale/shear first (recommended)"));
     perSubAffineCheck_->setChecked(true);
-    pixelScaleNormSpin_ = new QDoubleSpinBox;
+    pixelScaleNormSpin_ = new NoWheelDoubleSpinBox;
     pixelScaleNormSpin_->setRange(0.0, 100000.0);
     pixelScaleNormSpin_->setValue(0.0);
     pixelScaleNormSpin_->setSpecialValueText(tr("auto (half the sensor's long axis)"));
@@ -120,24 +130,24 @@ CalibrateTab::CalibrateTab(QWidget *parent) : QWidget(parent)
     advancedForm->addRow(QString(), perSubAffineCheck_);
 
     useHintCheck_ = new QCheckBox(tr("Pointing hint"));
-    raSpin_ = new QDoubleSpinBox;
+    raSpin_ = new NoWheelDoubleSpinBox;
     raSpin_->setRange(0.0, 360.0);
     raSpin_->setDecimals(6);
     raSpin_->setSuffix(tr(" deg RA"));
-    decSpin_ = new QDoubleSpinBox;
+    decSpin_ = new NoWheelDoubleSpinBox;
     decSpin_->setRange(-90.0, 90.0);
     decSpin_->setDecimals(6);
     decSpin_->setSuffix(tr(" deg Dec"));
-    radiusSpin_ = new QDoubleSpinBox;
+    radiusSpin_ = new NoWheelDoubleSpinBox;
     radiusSpin_->setRange(0.01, 180.0);
     radiusSpin_->setValue(1.0);
     radiusSpin_->setSuffix(tr(" deg radius"));
     useScaleCheck_ = new QCheckBox(tr("Pixel-scale bounds"));
-    scaleLowSpin_ = new QDoubleSpinBox;
+    scaleLowSpin_ = new NoWheelDoubleSpinBox;
     scaleLowSpin_->setRange(0.01, 1000.0);
     scaleLowSpin_->setDecimals(3);
     scaleLowSpin_->setSuffix(tr(" \"/px low"));
-    scaleHighSpin_ = new QDoubleSpinBox;
+    scaleHighSpin_ = new NoWheelDoubleSpinBox;
     scaleHighSpin_->setRange(0.01, 1000.0);
     scaleHighSpin_->setDecimals(3);
     scaleHighSpin_->setValue(10.0);
@@ -166,22 +176,37 @@ CalibrateTab::CalibrateTab(QWidget *parent) : QWidget(parent)
     optionsLayout->addWidget(metaGroup);
     optionsLayout->addWidget(advancedGroup);
     optionsLayout->addWidget(hintsGroup);
-    optionsLayout->addWidget(calibrateButton_);
     optionsLayout->addStretch();
 
     auto *scrollArea = new QScrollArea;
     scrollArea->setWidget(optionsColumn);
     scrollArea->setWidgetResizable(true);
 
+    auto *outputColumn = new QWidget;
+    auto *outputLayout = new QVBoxLayout(outputColumn);
+    outputLayout->setContentsMargins(0, 0, 0, 0);
+    outputLayout->addWidget(summaryLabel_);
+    outputLayout->addWidget(logView_, 1);
+
+    // See SolveTab.cpp for why the options and the output share a
+    // QSplitter instead of a flat, all-scrolling column.
+    auto *splitter = new QSplitter(Qt::Vertical);
+    splitter->addWidget(scrollArea);
+    splitter->addWidget(outputColumn);
+    splitter->setStretchFactor(0, 0);
+    splitter->setStretchFactor(1, 1);
+    splitter->setChildrenCollapsible(false);
+    splitter->setSizes({1, 1});
+
     auto *mainLayout = new QVBoxLayout(this);
-    mainLayout->addWidget(scrollArea, 2);
-    mainLayout->addWidget(summaryLabel_);
-    mainLayout->addWidget(logView_, 3);
+    mainLayout->addWidget(splitter, 1);
+    mainLayout->addWidget(makeActionBar(splitter, calibrateButton_));
 
     connect(browseDirButton, &QPushButton::clicked, this, &CalibrateTab::browseDir);
     connect(browseGaiaButton, &QPushButton::clicked, this, &CalibrateTab::browseGaia);
     connect(browseOutButton, &QPushButton::clicked, this, &CalibrateTab::browseOutProfile);
     connect(browseCsvButton, &QPushButton::clicked, this, &CalibrateTab::browseResidualsCsv);
+    connect(fromProjectButton, &QPushButton::clicked, this, &CalibrateTab::fillFromProject);
     connect(useValidFromCheck_, &QCheckBox::toggled, validFromEdit_, &QWidget::setEnabled);
     connect(useValidToCheck_, &QCheckBox::toggled, validToEdit_, &QWidget::setEnabled);
     connect(useHintCheck_, &QCheckBox::toggled, this, [this](bool on) {
@@ -194,6 +219,18 @@ CalibrateTab::CalibrateTab(QWidget *parent) : QWidget(parent)
         scaleHighSpin_->setEnabled(on);
     });
     connect(calibrateButton_, &QPushButton::clicked, this, &CalibrateTab::startCalibrate);
+}
+
+void CalibrateTab::fillFromProject()
+{
+    if (!projectBar_ || projectBar_->baseDir().isEmpty()) {
+        appendLog(tr("Set a base directory in the Project bar above first.\n"));
+        return;
+    }
+    dirEdit_->setText(projectBar_->subsDir());
+    gaiaEdit_->setText(projectBar_->gaiaCsv());
+    outProfileEdit_->setText(projectBar_->profilePath());
+    residualsCsvEdit_->setText(projectBar_->residualsCsv());
 }
 
 void CalibrateTab::browseDir()

@@ -1,5 +1,8 @@
 #include "SolveTab.h"
+#include "NoWheelWidgets.h"
+#include "ProjectBar.h"
 #include "SolveWorker.h"
+#include "TabLayoutHelpers.h"
 
 #include <QCheckBox>
 #include <QDoubleSpinBox>
@@ -13,15 +16,17 @@
 #include <QPlainTextEdit>
 #include <QPushButton>
 #include <QRadioButton>
+#include <QScrollArea>
 #include <QScrollBar>
 #include <QSpinBox>
+#include <QSplitter>
 #include <QThread>
 #include <QVBoxLayout>
 #include <limits>
 
 namespace epochfrom::gui {
 
-SolveTab::SolveTab(QWidget *parent) : QWidget(parent)
+SolveTab::SolveTab(ProjectBar *projectBar, QWidget *parent) : QWidget(parent), projectBar_(projectBar)
 {
     singleFileRadio_ = new QRadioButton(tr("Single image"));
     directoryRadio_ = new QRadioButton(tr("Directory (batch)"));
@@ -33,12 +38,17 @@ SolveTab::SolveTab(QWidget *parent) : QWidget(parent)
     forceCheck_ = new QCheckBox(tr("Re-solve files that already have a .wcs sidecar"));
     forceCheck_->setEnabled(false);
 
+    auto *fromProjectButton = new QPushButton(tr("Fill from Project"));
+    fromProjectButton->setToolTip(
+        tr("Use the project bar's base directory + filter as the directory to solve"));
+
     auto *inputGroup = new QGroupBox(tr("What to solve"));
     auto *inputLayout = new QVBoxLayout;
     auto *radioRow = new QHBoxLayout;
     radioRow->addWidget(singleFileRadio_);
     radioRow->addWidget(directoryRadio_);
     radioRow->addStretch();
+    radioRow->addWidget(fromProjectButton);
     inputLayout->addLayout(radioRow);
     auto *pathRow = new QHBoxLayout;
     pathRow->addWidget(pathEdit_);
@@ -49,34 +59,34 @@ SolveTab::SolveTab(QWidget *parent) : QWidget(parent)
     inputGroup->setLayout(inputLayout);
 
     useHintCheck_ = new QCheckBox(tr("Pointing hint (much faster than a blind solve)"));
-    raSpin_ = new QDoubleSpinBox;
+    raSpin_ = new NoWheelDoubleSpinBox;
     raSpin_->setRange(0.0, 360.0);
     raSpin_->setDecimals(6);
     raSpin_->setSuffix(tr(" deg RA"));
-    decSpin_ = new QDoubleSpinBox;
+    decSpin_ = new NoWheelDoubleSpinBox;
     decSpin_->setRange(-90.0, 90.0);
     decSpin_->setDecimals(6);
     decSpin_->setSuffix(tr(" deg Dec"));
-    radiusSpin_ = new QDoubleSpinBox;
+    radiusSpin_ = new NoWheelDoubleSpinBox;
     radiusSpin_->setRange(0.01, 180.0);
     radiusSpin_->setValue(1.0);
     radiusSpin_->setSuffix(tr(" deg radius"));
 
     useScaleCheck_ = new QCheckBox(tr("Pixel-scale bounds"));
-    scaleLowSpin_ = new QDoubleSpinBox;
+    scaleLowSpin_ = new NoWheelDoubleSpinBox;
     scaleLowSpin_->setRange(0.01, 1000.0);
     scaleLowSpin_->setDecimals(3);
     scaleLowSpin_->setSuffix(tr(" \"/px low"));
-    scaleHighSpin_ = new QDoubleSpinBox;
+    scaleHighSpin_ = new NoWheelDoubleSpinBox;
     scaleHighSpin_->setRange(0.01, 1000.0);
     scaleHighSpin_->setDecimals(3);
     scaleHighSpin_->setValue(10.0);
     scaleHighSpin_->setSuffix(tr(" \"/px high"));
 
-    downsampleSpin_ = new QSpinBox;
+    downsampleSpin_ = new NoWheelSpinBox;
     downsampleSpin_->setRange(1, 8);
     downsampleSpin_->setValue(2);
-    cpuLimitSpin_ = new QSpinBox;
+    cpuLimitSpin_ = new NoWheelSpinBox;
     cpuLimitSpin_->setRange(5, 3600);
     cpuLimitSpin_->setValue(55);
     cpuLimitSpin_->setSuffix(tr(" sec"));
@@ -115,11 +125,32 @@ SolveTab::SolveTab(QWidget *parent) : QWidget(parent)
     mono.setStyleHint(QFont::Monospace);
     logView_->setFont(mono);
 
+    auto *optionsColumn = new QWidget;
+    auto *optionsLayout = new QVBoxLayout(optionsColumn);
+    optionsLayout->addWidget(inputGroup);
+    optionsLayout->addWidget(hintsGroup);
+    optionsLayout->addStretch();
+
+    auto *scrollArea = new QScrollArea;
+    scrollArea->setWidget(optionsColumn);
+    scrollArea->setWidgetResizable(true);
+
+    // The options pane and the log share a QSplitter so the divider between
+    // them can be dragged, or snapped with a preset -- scrolling the mouse
+    // wheel over the options no longer fights for that space (see
+    // NoWheelWidgets.h), and it no longer changes spin/combo box values
+    // either.
+    auto *splitter = new QSplitter(Qt::Vertical);
+    splitter->addWidget(scrollArea);
+    splitter->addWidget(logView_);
+    splitter->setStretchFactor(0, 0);
+    splitter->setStretchFactor(1, 1);
+    splitter->setChildrenCollapsible(false);
+    splitter->setSizes({1, 1});
+
     auto *mainLayout = new QVBoxLayout(this);
-    mainLayout->addWidget(inputGroup);
-    mainLayout->addWidget(hintsGroup);
-    mainLayout->addWidget(solveButton_);
-    mainLayout->addWidget(logView_, 1);
+    mainLayout->addWidget(splitter, 1);
+    mainLayout->addWidget(makeActionBar(splitter, solveButton_));
 
     connect(directoryRadio_, &QRadioButton::toggled, this, [this](bool isDir) {
         wcsOnlyCheck_->setEnabled(!isDir);
@@ -135,7 +166,18 @@ SolveTab::SolveTab(QWidget *parent) : QWidget(parent)
         scaleHighSpin_->setEnabled(on);
     });
     connect(browseButton_, &QPushButton::clicked, this, &SolveTab::browsePath);
+    connect(fromProjectButton, &QPushButton::clicked, this, &SolveTab::fillFromProject);
     connect(solveButton_, &QPushButton::clicked, this, &SolveTab::startSolve);
+}
+
+void SolveTab::fillFromProject()
+{
+    if (!projectBar_ || projectBar_->baseDir().isEmpty()) {
+        appendLog(tr("Set a base directory in the Project bar above first.\n"));
+        return;
+    }
+    directoryRadio_->setChecked(true);
+    pathEdit_->setText(projectBar_->subsDir());
 }
 
 void SolveTab::browsePath()

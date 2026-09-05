@@ -73,12 +73,13 @@ profile measurably reduces the residual over not applying it to the same
 distorted data. See `EpochFrom date --help`.
 
 A first desktop GUI is here too: `EpochFrom-gui` is a Qt Widgets app with a
-Solve/Calibrate/Date tab apiece, driving the same core library
-(`epoch_from_core`) the CLI does directly rather than shelling out to it.
-Each tab exposes that command's options as fields instead of flags, runs the
-actual work (a solve, a calibration directory batch, a dating run) on a
-background thread so the window stays responsive during a long solve, and
-prints its report using the exact same formatting code the CLI uses
+Gaia/Solve/Calibrate/Date tab apiece, driving the same core library
+(`epoch_from_core`) the CLI does directly rather than shelling out to it
+(the Gaia tab is the one exception -- see below). Each tab exposes that
+command's options as fields instead of flags, runs the actual work (a
+solve, a calibration directory batch, a dating run) on a background thread
+so the window stays responsive during a long solve, and prints its report
+using the exact same formatting code the CLI uses
 (`src/core/ReportFormatting.{h,cpp}`, factored out for this reason) so the
 two can't quietly drift apart on what a result says. It's a first pass, not
 full parity with the CLI: `calibrate`'s `--sub`/`--wcs` pair-list mode (for
@@ -87,6 +88,34 @@ CLI-only, and there's no in-app residual-field plot yet -- the Tools menu
 just opens `tools/residual-field.html` in a browser, same as the CLI's own
 suggestion after a `--residuals-csv` export. See "Building" below for how to
 build it (or skip it) and where the binary ends up.
+
+The Gaia tab wraps `scripts/gaia_field_query.py` (see "Gaia data" below) as
+a subprocess via `QProcess`, streaming its progress into the same kind of
+log view the other tabs use, so downloading a field's reference catalog no
+longer requires a terminal.
+
+A **Project** bar sits above the tabs holding a base directory and a
+filter (Ha/OIII/SII/L/R/G/B/... or blank), persisted between runs. Every
+tab has a "Fill from Project" button that composes that tab's paths from
+it: subs directory is `<base>/<filter>` (or `<base>` itself with no
+filter), Gaia catalog is `<base>/gaia.csv` and equipment profile is
+`<base>/profile.json` (both shared across filters, since neither the star
+field nor the rig's own distortion depends on which filter a sub was shot
+through), and a calibration's residuals CSV is
+`<base>/<filter>_residuals.csv`. It's a one-click convenience, not a
+constraint -- every field it fills stays a plain, freely-editable path
+afterward, and nothing requires using it at all.
+
+Each tab's options sit in a scroll area above its command-output log, with
+the divider between them a `QSplitter` -- drag it, or click one of the
+"Balanced"/"More Output"/"More Options" presets in the action bar, which
+also keeps the tab's primary button (Solve/Query Gaia/Calibrate/Date)
+visible regardless of scroll position. Every spin box and combo box in the
+GUI also ignores mouse-wheel scrolling unless it currently has keyboard
+focus (`src/gui/NoWheelWidgets.h`), since Qt's default behavior -- accepting
+wheel input on mere hover -- meant scrolling down a tab's options could
+silently change whatever numeric field the cursor happened to be over
+instead of scrolling the page.
 
 Not yet ported to C++: any automatic equipment-tagging for a dating run
 (today `--profile` is an explicit, manual, and by-default-required choice
@@ -216,7 +245,10 @@ dated/failed tally.
 stars (position, proper motion, parallax, RUWE-filtered) and writes a CSV
 in the format `GaiaCatalog::loadCsv` reads. Run it wherever you have
 unrestricted network access to the Gaia archive — it's a separate step from
-the C++ tool on purpose, not a build dependency.
+the C++ tool on purpose, not a build dependency (it needs
+`pip install astropy astroquery`, which the GUI/CLI build doesn't). Run it
+from a terminal, or from `EpochFrom-gui`'s Gaia tab, which shells out to it
+via `QProcess` and streams its output live.
 
 ## Docs
 

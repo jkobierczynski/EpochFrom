@@ -15,19 +15,24 @@ class QThread;
 
 namespace epochfrom::gui {
 
+class ProjectBar;
+
 // The "Calibrate" tab: wraps EquipmentCalibrator over a directory of subs
 // (mirrors `EpochFrom calibrate --dir`). Only the --dir input mode is
 // exposed -- see CalibrateWorker's class comment for why.
 class CalibrateTab : public QWidget {
     Q_OBJECT
 public:
-    explicit CalibrateTab(QWidget *parent = nullptr);
+    // `projectBar` may be null (the tab still works standalone); when set,
+    // its base directory/filter back this tab's "Fill from Project" button.
+    explicit CalibrateTab(ProjectBar *projectBar, QWidget *parent = nullptr);
 
 private slots:
     void browseDir();
     void browseGaia();
     void browseOutProfile();
     void browseResidualsCsv();
+    void fillFromProject();
     void startCalibrate();
     void appendLog(const QString &text);
     void onSummary(int chosenOrder, double rmsBeforeMas, double rmsAfterHeldoutMas,
@@ -37,6 +42,7 @@ private slots:
 private:
     void setBusy(bool busy);
 
+    ProjectBar *projectBar_;
     QLineEdit *dirEdit_;
     QLineEdit *gaiaEdit_;
     QLineEdit *outProfileEdit_;

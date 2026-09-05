@@ -13,21 +13,28 @@ class QThread;
 
 namespace epochfrom::gui {
 
+class ProjectBar;
+
 // The "Solve" tab: wraps PlateSolver over a single image or a whole
 // directory (mirrors `EpochFrom solve` / `EpochFrom solve --dir`).
 class SolveTab : public QWidget {
     Q_OBJECT
 public:
-    explicit SolveTab(QWidget *parent = nullptr);
+    // `projectBar` may be null (the tab still works standalone); when set,
+    // its base directory/filter back this tab's "Fill from Project" button.
+    explicit SolveTab(ProjectBar *projectBar, QWidget *parent = nullptr);
 
 private slots:
     void browsePath();
+    void fillFromProject();
     void startSolve();
     void appendLog(const QString &text);
     void onFinished(bool ok);
 
 private:
     void setBusy(bool busy);
+
+    ProjectBar *projectBar_;
 
     QRadioButton *singleFileRadio_;
     QRadioButton *directoryRadio_;

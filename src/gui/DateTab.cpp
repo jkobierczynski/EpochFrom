@@ -1,5 +1,8 @@
 #include "DateTab.h"
 #include "DateWorker.h"
+#include "NoWheelWidgets.h"
+#include "ProjectBar.h"
+#include "TabLayoutHelpers.h"
 
 #include <QCheckBox>
 #include <QDoubleSpinBox>
@@ -15,6 +18,7 @@
 #include <QRadioButton>
 #include <QScrollArea>
 #include <QScrollBar>
+#include <QSplitter>
 #include <QThread>
 #include <QVBoxLayout>
 #include <limits>
@@ -33,7 +37,7 @@ QWidget *rowOf(std::initializer_list<QWidget *> widgets)
 }
 } // namespace
 
-DateTab::DateTab(QWidget *parent) : QWidget(parent)
+DateTab::DateTab(ProjectBar *projectBar, QWidget *parent) : QWidget(parent), projectBar_(projectBar)
 {
     singleFileRadio_ = new QRadioButton(tr("Single image"));
     directoryRadio_ = new QRadioButton(tr("Directory (batch)"));
@@ -50,6 +54,10 @@ DateTab::DateTab(QWidget *parent) : QWidget(parent)
     noProfileCheck_ = new QCheckBox(
         tr("Date without an equipment profile (not recommended -- estimated dates can be off by "
            "years on a rig with any real uncorrected optical distortion)"));
+    auto *fromProjectButton = new QPushButton(tr("Fill from Project"));
+    fromProjectButton->setToolTip(
+        tr("Use the project bar's base directory + filter to fill the directory, Gaia catalog, "
+           "and equipment profile below"));
 
     auto *inputGroup = new QGroupBox(tr("What to date"));
     auto *inputLayout = new QVBoxLayout(inputGroup);
@@ -57,6 +65,7 @@ DateTab::DateTab(QWidget *parent) : QWidget(parent)
     radioRow->addWidget(singleFileRadio_);
     radioRow->addWidget(directoryRadio_);
     radioRow->addStretch();
+    radioRow->addWidget(fromProjectButton);
     inputLayout->addLayout(radioRow);
     auto *form = new QFormLayout;
     form->addRow(tr("Image / directory:"), rowOf({pathEdit_, browsePathButton}));
@@ -66,20 +75,20 @@ DateTab::DateTab(QWidget *parent) : QWidget(parent)
     inputLayout->addLayout(form);
     inputLayout->addWidget(noProfileCheck_);
 
-    fwhmSpin_ = new QDoubleSpinBox;
+    fwhmSpin_ = new NoWheelDoubleSpinBox;
     fwhmSpin_->setRange(0.5, 100.0);
     fwhmSpin_->setValue(4.0);
     fwhmSpin_->setSuffix(tr(" px FWHM"));
-    thresholdSpin_ = new QDoubleSpinBox;
+    thresholdSpin_ = new NoWheelDoubleSpinBox;
     thresholdSpin_->setRange(0.5, 100.0);
     thresholdSpin_->setValue(6.0);
     thresholdSpin_->setSuffix(tr(" sigma threshold"));
-    matchArcsecSpin_ = new QDoubleSpinBox;
+    matchArcsecSpin_ = new NoWheelDoubleSpinBox;
     matchArcsecSpin_->setRange(0.1, 60.0);
     matchArcsecSpin_->setValue(3.0);
     matchArcsecSpin_->setSuffix(tr(" arcsec match tol."));
     useObsSigmaCheck_ = new QCheckBox(tr("Override assumed per-star precision"));
-    obsSigmaSpin_ = new QDoubleSpinBox;
+    obsSigmaSpin_ = new NoWheelDoubleSpinBox;
     obsSigmaSpin_->setRange(1.0, 10000.0);
     obsSigmaSpin_->setValue(300.0);
     obsSigmaSpin_->setSuffix(tr(" mas"));
@@ -92,24 +101,24 @@ DateTab::DateTab(QWidget *parent) : QWidget(parent)
     detectionForm->addRow(useObsSigmaCheck_, obsSigmaSpin_);
 
     useHintCheck_ = new QCheckBox(tr("Pointing hint"));
-    raSpin_ = new QDoubleSpinBox;
+    raSpin_ = new NoWheelDoubleSpinBox;
     raSpin_->setRange(0.0, 360.0);
     raSpin_->setDecimals(6);
     raSpin_->setSuffix(tr(" deg RA"));
-    decSpin_ = new QDoubleSpinBox;
+    decSpin_ = new NoWheelDoubleSpinBox;
     decSpin_->setRange(-90.0, 90.0);
     decSpin_->setDecimals(6);
     decSpin_->setSuffix(tr(" deg Dec"));
-    radiusSpin_ = new QDoubleSpinBox;
+    radiusSpin_ = new NoWheelDoubleSpinBox;
     radiusSpin_->setRange(0.01, 180.0);
     radiusSpin_->setValue(1.0);
     radiusSpin_->setSuffix(tr(" deg radius"));
     useScaleCheck_ = new QCheckBox(tr("Pixel-scale bounds"));
-    scaleLowSpin_ = new QDoubleSpinBox;
+    scaleLowSpin_ = new NoWheelDoubleSpinBox;
     scaleLowSpin_->setRange(0.01, 1000.0);
     scaleLowSpin_->setDecimals(3);
     scaleLowSpin_->setSuffix(tr(" \"/px low"));
-    scaleHighSpin_ = new QDoubleSpinBox;
+    scaleHighSpin_ = new NoWheelDoubleSpinBox;
     scaleHighSpin_->setRange(0.01, 1000.0);
     scaleHighSpin_->setDecimals(3);
     scaleHighSpin_->setValue(10.0);
@@ -137,17 +146,31 @@ DateTab::DateTab(QWidget *parent) : QWidget(parent)
     optionsLayout->addWidget(inputGroup);
     optionsLayout->addWidget(detectionGroup);
     optionsLayout->addWidget(hintsGroup);
-    optionsLayout->addWidget(dateButton_);
     optionsLayout->addStretch();
 
     auto *scrollArea = new QScrollArea;
     scrollArea->setWidget(optionsColumn);
     scrollArea->setWidgetResizable(true);
 
+    auto *outputColumn = new QWidget;
+    auto *outputLayout = new QVBoxLayout(outputColumn);
+    outputLayout->setContentsMargins(0, 0, 0, 0);
+    outputLayout->addWidget(summaryLabel_);
+    outputLayout->addWidget(logView_, 1);
+
+    // See SolveTab.cpp for why the options and the output share a
+    // QSplitter instead of a flat, all-scrolling column.
+    auto *splitter = new QSplitter(Qt::Vertical);
+    splitter->addWidget(scrollArea);
+    splitter->addWidget(outputColumn);
+    splitter->setStretchFactor(0, 0);
+    splitter->setStretchFactor(1, 1);
+    splitter->setChildrenCollapsible(false);
+    splitter->setSizes({1, 1});
+
     auto *mainLayout = new QVBoxLayout(this);
-    mainLayout->addWidget(scrollArea, 2);
-    mainLayout->addWidget(summaryLabel_);
-    mainLayout->addWidget(logView_, 3);
+    mainLayout->addWidget(splitter, 1);
+    mainLayout->addWidget(makeActionBar(splitter, dateButton_));
 
     connect(directoryRadio_, &QRadioButton::toggled, this, [this](bool isDir) {
         wcsEdit_->setEnabled(!isDir);
@@ -156,6 +179,7 @@ DateTab::DateTab(QWidget *parent) : QWidget(parent)
     connect(browseWcsButton, &QPushButton::clicked, this, &DateTab::browseWcs);
     connect(browseGaiaButton, &QPushButton::clicked, this, &DateTab::browseGaia);
     connect(browseProfileButton, &QPushButton::clicked, this, &DateTab::browseProfile);
+    connect(fromProjectButton, &QPushButton::clicked, this, &DateTab::fillFromProject);
     connect(noProfileCheck_, &QCheckBox::toggled, this, [this](bool on) {
         profileEdit_->setEnabled(!on);
     });
@@ -170,6 +194,21 @@ DateTab::DateTab(QWidget *parent) : QWidget(parent)
         scaleHighSpin_->setEnabled(on);
     });
     connect(dateButton_, &QPushButton::clicked, this, &DateTab::startDate);
+}
+
+void DateTab::fillFromProject()
+{
+    if (!projectBar_ || projectBar_->baseDir().isEmpty()) {
+        appendLog(tr("Set a base directory in the Project bar above first.\n"));
+        return;
+    }
+    directoryRadio_->setChecked(true);
+    pathEdit_->setText(projectBar_->subsDir());
+    gaiaEdit_->setText(projectBar_->gaiaCsv());
+    const QString profile = projectBar_->profilePath();
+    profileEdit_->setText(profile);
+    if (!profile.isEmpty())
+        noProfileCheck_->setChecked(false);
 }
 
 void DateTab::browsePath()

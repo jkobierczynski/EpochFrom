@@ -16,6 +16,13 @@ add_executable(epoch_from_gui
     DateTab.cpp
     DateWorker.h
     DateWorker.cpp
+    GaiaTab.h
+    GaiaTab.cpp
+    ProjectBar.h
+    ProjectBar.cpp
+    ProjectPaths.h
+    NoWheelWidgets.h
+    TabLayoutHelpers.h
     FitsDirScan.h
 )
 set_target_properties(epoch_from_gui PROPERTIES OUTPUT_NAME EpochFrom-gui)

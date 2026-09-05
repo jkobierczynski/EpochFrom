@@ -14,18 +14,23 @@ class QThread;
 
 namespace epochfrom::gui {
 
+class ProjectBar;
+
 // The "Date" tab: wraps ImageDater over a single image or a directory
 // (mirrors `EpochFrom date` / `EpochFrom date --dir`).
 class DateTab : public QWidget {
     Q_OBJECT
 public:
-    explicit DateTab(QWidget *parent = nullptr);
+    // `projectBar` may be null (the tab still works standalone); when set,
+    // its base directory/filter back this tab's "Fill from Project" button.
+    explicit DateTab(ProjectBar *projectBar, QWidget *parent = nullptr);
 
 private slots:
     void browsePath();
     void browseWcs();
     void browseGaia();
     void browseProfile();
+    void fillFromProject();
     void startDate();
     void appendLog(const QString &text);
     void onSummary(const QString &estimatedDate, double epochJyear, double epochSigmaYears,
@@ -35,6 +40,7 @@ private slots:
 private:
     void setBusy(bool busy);
 
+    ProjectBar *projectBar_;
     QRadioButton *singleFileRadio_;
     QRadioButton *directoryRadio_;
     QLineEdit *pathEdit_;
