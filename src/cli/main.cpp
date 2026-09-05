@@ -179,7 +179,8 @@ int runCalibrate(const QCommandLineParser &parser, QTextStream &out)
     const QString gaiaPath = parser.value("gaia");
     const QString outPath = parser.value("outprofile");
     if (gaiaPath.isEmpty() || outPath.isEmpty()) {
-        out << "error: --gaia <path.csv> and --outprofile <profile.json> are required\n";
+        out << "error: --gaia <path.csv> and --outprofile <profile.json> are required\n\n";
+        out << parser.helpText();
         return 1;
     }
     if (!outPath.endsWith(".json", Qt::CaseInsensitive)) {
@@ -223,7 +224,8 @@ int runCalibrate(const QCommandLineParser &parser, QTextStream &out)
         const QStringList wcsFiles = parser.values("wcs");
         if (images.isEmpty()) {
             out << "error: pass --dir <dir>, or one or more --sub <image> --wcs <image.wcs> "
-                   "pairs\n";
+                   "pairs\n\n";
+            out << parser.helpText();
             return 1;
         }
         if (images.size() != wcsFiles.size()) {
