@@ -18,6 +18,17 @@ target_link_libraries(plate_solver_wcs_test PRIVATE epoch_from_core Qt6::Core)
 # being installed.
 add_test(NAME plate_solver_wcs_test COMMAND plate_solver_wcs_test)
 
+add_executable(fits_header_update_test fits_header_update_test.cpp)
+target_link_libraries(fits_header_update_test PRIVATE epoch_from_core Qt6::Core)
+
+# Unit test for PlateSolver::writeWcsIntoFits() -- the opt-in step behind
+# `solve --update-fits-header` that copies a solved WCS (and SIP terms) from
+# a .wcs sidecar into the original image's own FITS header, in place.
+# Builds synthetic light-frame + .wcs fixtures (with and without SIP terms)
+# so it has no dependency on solve-field being installed, and checks that
+# OBJCTRA/OBJCTDEC are left untouched.
+add_test(NAME fits_header_update_test COMMAND fits_header_update_test)
+
 add_executable(linear_wcs_test linear_wcs_test.cpp)
 target_link_libraries(linear_wcs_test PRIVATE epoch_from_core Qt6::Core)
 

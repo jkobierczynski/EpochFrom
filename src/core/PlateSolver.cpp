@@ -42,7 +42,137 @@ QString cfitsioErrorText(int status)
     return QString::fromLocal8Bit(buf);
 }
 
+// Core TAN WCS keywords copied verbatim (as raw header cards, so formatting
+// and comments survive untouched) from a .wcs sidecar into the original
+// image's own header when PlateSolveOptions::updateFitsHeader is set.
+// Deliberately excludes OBJCTRA/OBJCTDEC: those are the mount/capture
+// software's own record of where it was *asked* to point, which is
+// legitimate metadata in its own right (if sometimes stale, per
+// get_center_from_fits() in scripts/gaia_field_query.py) and not this
+// function's business to overwrite.
+const char *const kCoreWcsKeys[] = {
+    "WCSAXES", "CTYPE1", "CTYPE2", "CUNIT1", "CUNIT2",
+    "CRVAL1",  "CRVAL2", "CRPIX1", "CRPIX2",
+    "CD1_1",   "CD1_2",  "CD2_1",  "CD2_2",
+    "EQUINOX", "LONPOLE", "LATPOLE", "RADESYS", "RADESYSA",
+};
+
+// SIP distortion polynomial families: each is present only if solve-field
+// found it worth fitting one, so every family is optional and independently
+// checked via its own "*_ORDER" card.
+struct SipFamily {
+    const char *orderKey;
+    const char *prefix;
+};
+const SipFamily kSipFamilies[] = {
+    {"A_ORDER", "A_"},
+    {"B_ORDER", "B_"},
+    {"AP_ORDER", "AP_"},
+    {"BP_ORDER", "BP_"},
+};
+
+// Copies one header card verbatim from src to dst, if present in src.
+// Absence in src is not an error -- callers use this to opportunistically
+// pull whichever of a fixed keyword list actually exist.
+void copyCardIfPresent(fitsfile *src, fitsfile *dst, const char *key, int *status)
+{
+    char card[FLEN_CARD];
+    int localStatus = 0;
+    if (fits_read_card(src, key, card, &localStatus) != 0)
+        return;
+    fits_update_card(dst, key, card, status);
+}
+
 } // namespace
+
+// Copies the WCS solution (core TAN keywords, any SIP terms, plus
+// convenience decimal RA/DEC keys) from a freshly-solved .wcs sidecar into
+// the original image's own FITS header, in place. This is a deliberate,
+// opt-in exception to this project's usual separation of concerns (pixel
+// data + DATE-OBS in the FITS file, linear WCS terms in the .wcs sidecar --
+// see the CalibrationSub comment in EquipmentCalibrator.h) for users who
+// want their light frames self-describing, e.g. for other tools that don't
+// know to look for a sidecar. Returns an empty string on success, or a
+// human-readable warning on failure; failure here never implies the solve
+// itself failed -- the .wcs sidecar is already written and valid
+// independently of this step.
+QString PlateSolver::writeWcsIntoFits(const QString &imagePath, const QString &wcsPath,
+                                       const PlateSolveResult &result)
+{
+    int status = 0;
+    fitsfile *wcsFptr = nullptr;
+    if (fits_open_file(&wcsFptr, wcsPath.toLocal8Bit().constData(), READONLY, &status) != 0) {
+        return QStringLiteral("could not reopen %1 to update the image's FITS header: %2")
+            .arg(wcsPath, cfitsioErrorText(status));
+    }
+
+    fitsfile *imgFptr = nullptr;
+    if (fits_open_file(&imgFptr, imagePath.toLocal8Bit().constData(), READWRITE, &status) != 0) {
+        const QString warning = QStringLiteral("could not open %1 for writing to update its FITS "
+                                                "header: %2")
+                                     .arg(imagePath, cfitsioErrorText(status));
+        int closeStatus = 0;
+        fits_close_file(wcsFptr, &closeStatus);
+        return warning;
+    }
+
+    for (const char *key : kCoreWcsKeys)
+        copyCardIfPresent(wcsFptr, imgFptr, key, &status);
+
+    for (const SipFamily &family : kSipFamilies) {
+        char orderCard[FLEN_CARD];
+        int probeStatus = 0;
+        if (fits_read_card(wcsFptr, family.orderKey, orderCard, &probeStatus) != 0)
+            continue; // this SIP family isn't in the .wcs file -- not every solve has SIP
+
+        long order = 0;
+        probeStatus = 0;
+        if (fits_read_key(wcsFptr, TLONG, family.orderKey, &order, nullptr, &probeStatus) != 0)
+            continue;
+
+        fits_update_card(imgFptr, family.orderKey, orderCard, &status);
+
+        for (long i = 0; i <= order; ++i) {
+            for (long j = 0; j <= order - i; ++j) {
+                const QByteArray termKey = QByteArray(family.prefix) + QByteArray::number(i) + '_' +
+                                            QByteArray::number(j);
+                copyCardIfPresent(wcsFptr, imgFptr, termKey.constData(), &status);
+            }
+        }
+    }
+
+    int wcsCloseStatus = 0;
+    fits_close_file(wcsFptr, &wcsCloseStatus);
+
+    // Convenience decimal-degree keys, deliberately using the same "RA"/
+    // "DEC" names get_center_from_fits() (scripts/gaia_field_query.py)
+    // already falls back to when CRVAL1/2 aren't present -- so a light frame
+    // updated this way becomes directly usable there too, not just a
+    // cosmetic addition.
+    double ra = result.centerRaDeg;
+    double dec = result.centerDecDeg;
+    fits_update_key(imgFptr, TDOUBLE, "RA", &ra, "Solved field center RA, deg (EpochFrom)", &status);
+    fits_update_key(imgFptr, TDOUBLE, "DEC", &dec, "Solved field center Dec, deg (EpochFrom)",
+                     &status);
+
+    fits_write_history(imgFptr,
+                        "WCS solution written into this header by EpochFrom "
+                        "solve --update-fits-header",
+                        &status);
+    // Recomputes DATASUM/CHECKSUM to match the now-modified header, whether
+    // or not either existed before.
+    fits_write_chksum(imgFptr, &status);
+
+    QString warning;
+    if (status != 0) {
+        warning = QStringLiteral("writing the WCS into %1's FITS header failed partway through: %2")
+                      .arg(imagePath, cfitsioErrorText(status));
+    }
+
+    int imgCloseStatus = 0;
+    fits_close_file(imgFptr, &imgCloseStatus);
+    return warning;
+}
 
 PlateSolveResult PlateSolver::readWcsFile(const QString &wcsPath)
 {
@@ -292,7 +422,10 @@ PlateSolveResult PlateSolver::solve(const QString &imagePath, const PlateSolveOp
         return result;
     }
 
-    return readWcsFile(wcsPath);
+    PlateSolveResult finalResult = readWcsFile(wcsPath);
+    if (finalResult.solved && options.updateFitsHeader)
+        finalResult.fitsHeaderUpdateWarning = PlateSolver::writeWcsIntoFits(imagePath, wcsPath, finalResult);
+    return finalResult;
 }
 
 } // namespace epochfrom

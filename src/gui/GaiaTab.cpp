@@ -37,12 +37,17 @@ QWidget *rowOf(std::initializer_list<QWidget *> widgets)
 GaiaTab::GaiaTab(ProjectBar *projectBar, QWidget *parent) : QWidget(parent), projectBar_(projectBar)
 {
     fitsRadio_ = new QRadioButton(tr("From a FITS file's header (CRVAL1/2, RA/DEC, or OBJCTRA/DEC)"));
+    wcsRadio_ = new QRadioButton(tr("From an already-solved .wcs sidecar"));
     raDecRadio_ = new QRadioButton(tr("Explicit RA/Dec"));
     presetRadio_ = new QRadioButton(tr("Known preset"));
     fitsRadio_->setChecked(true);
 
     fitsPathEdit_ = new QLineEdit;
     auto *browseFitsButton = new QPushButton(tr("Browse..."));
+
+    wcsPathEdit_ = new QLineEdit;
+    wcsPathEdit_->setEnabled(false);
+    auto *browseWcsButton = new QPushButton(tr("Browse..."));
 
     raSpin_ = new NoWheelDoubleSpinBox;
     raSpin_->setRange(0.0, 360.0);
@@ -62,6 +67,7 @@ GaiaTab::GaiaTab(ProjectBar *projectBar, QWidget *parent) : QWidget(parent), pro
     auto *inputGroup = new QGroupBox(tr("Field center"));
     auto *inputForm = new QFormLayout(inputGroup);
     inputForm->addRow(fitsRadio_, rowOf({fitsPathEdit_, browseFitsButton}));
+    inputForm->addRow(wcsRadio_, rowOf({wcsPathEdit_, browseWcsButton}));
     inputForm->addRow(raDecRadio_, rowOf({raSpin_, decSpin_}));
     inputForm->addRow(presetRadio_, presetCombo_);
 
@@ -145,16 +151,19 @@ GaiaTab::GaiaTab(ProjectBar *projectBar, QWidget *parent) : QWidget(parent), pro
 
     auto updateInputEnabled = [this]() {
         fitsPathEdit_->setEnabled(fitsRadio_->isChecked());
+        wcsPathEdit_->setEnabled(wcsRadio_->isChecked());
         raSpin_->setEnabled(raDecRadio_->isChecked());
         decSpin_->setEnabled(raDecRadio_->isChecked());
         presetCombo_->setEnabled(presetRadio_->isChecked());
     };
     updateInputEnabled();
     connect(fitsRadio_, &QRadioButton::toggled, this, updateInputEnabled);
+    connect(wcsRadio_, &QRadioButton::toggled, this, updateInputEnabled);
     connect(raDecRadio_, &QRadioButton::toggled, this, updateInputEnabled);
     connect(presetRadio_, &QRadioButton::toggled, this, updateInputEnabled);
 
     connect(browseFitsButton, &QPushButton::clicked, this, &GaiaTab::browseFits);
+    connect(browseWcsButton, &QPushButton::clicked, this, &GaiaTab::browseWcs);
     connect(browseOutButton, &QPushButton::clicked, this, &GaiaTab::browseOut);
     connect(browseScriptButton, &QPushButton::clicked, this, [this]() {
         const QString file = QFileDialog::getOpenFileName(this, tr("Locate gaia_field_query.py"),
@@ -211,6 +220,14 @@ void GaiaTab::browseFits()
         fitsPathEdit_->setText(file);
 }
 
+void GaiaTab::browseWcs()
+{
+    const QString file = QFileDialog::getOpenFileName(this, tr("Choose a .wcs sidecar"), QString(),
+                                                        tr("WCS files (*.wcs);;All files (*)"));
+    if (!file.isEmpty())
+        wcsPathEdit_->setText(file);
+}
+
 void GaiaTab::browseOut()
 {
     const QString file = QFileDialog::getSaveFileName(this, tr("Save Gaia catalog"), QString(),
@@ -251,11 +268,17 @@ void GaiaTab::startQuery()
         appendLog(tr("Choose a FITS file to read the field center from, or pick another input mode.\n"));
         return;
     }
+    if (wcsRadio_->isChecked() && wcsPathEdit_->text().trimmed().isEmpty()) {
+        appendLog(tr("Choose a .wcs sidecar to read the field center from, or pick another input mode.\n"));
+        return;
+    }
 
     QStringList args;
     args << script;
     if (fitsRadio_->isChecked()) {
         args << "--fits" << fitsPathEdit_->text().trimmed();
+    } else if (wcsRadio_->isChecked()) {
+        args << "--wcs" << wcsPathEdit_->text().trimmed();
     } else if (raDecRadio_->isChecked()) {
         args << "--ra" << QString::number(raSpin_->value(), 'f', 6)
              << "--dec" << QString::number(decSpin_->value(), 'f', 6);

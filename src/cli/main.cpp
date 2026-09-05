@@ -87,6 +87,8 @@ PlateSolveOptions buildSolveOptions(const QCommandLineParser &parser)
         options.cpuLimitSeconds = parser.value("cpulimit").toInt();
     if (parser.isSet("solve-field-path"))
         options.solveFieldPath = parser.value("solve-field-path");
+    if (parser.isSet("update-fits-header"))
+        options.updateFitsHeader = true;
     return options;
 }
 
@@ -145,6 +147,8 @@ int runSolveDir(const QCommandLineParser &parser, QTextStream &out)
                    .arg(result.fieldWidthArcmin, 0, 'f', 1)
                    .arg(result.fieldHeightArcmin, 0, 'f', 1)
                    .arg(result.pixelScaleArcsecPerPix, 0, 'f', 3);
+        if (!result.fitsHeaderUpdateWarning.isEmpty())
+            out << "  warning: " << result.fitsHeaderUpdateWarning << "\n";
         ++solved;
     }
 
@@ -551,6 +555,11 @@ int main(int argc, char *argv[])
                            "dir"});
         parser.addOption(
             {"force", "With --dir, re-solve files that already have a matching .wcs sidecar"});
+        parser.addOption({"update-fits-header",
+                           "After solving, also write the WCS (CRVAL/CRPIX/CD, SIP terms, and "
+                           "convenience decimal RA/DEC keys) into the image's own FITS header, "
+                           "in place -- not just the .wcs sidecar. Modifies the original file; "
+                           "off by default"});
         parser.process(app);
         return runSolve(parser, out);
     }
@@ -611,6 +620,10 @@ int main(int argc, char *argv[])
         parser.addOption({"cpulimit", "solve-field CPU time limit, seconds", "sec", "55"});
         parser.addOption({"solve-field-path", "Path to the solve-field binary", "path",
                            "solve-field"});
+        parser.addOption({"update-fits-header",
+                           "When a sub needs solving, also write the WCS into that sub's own "
+                           "FITS header, in place -- not just its .wcs sidecar. Modifies the "
+                           "original file; off by default"});
         parser.process(app);
         return runCalibrate(parser, out);
     }
@@ -660,6 +673,10 @@ int main(int argc, char *argv[])
         parser.addOption({"cpulimit", "solve-field CPU time limit, seconds", "sec", "55"});
         parser.addOption({"solve-field-path", "Path to the solve-field binary", "path",
                            "solve-field"});
+        parser.addOption({"update-fits-header",
+                           "When an image needs solving, also write the WCS into its own FITS "
+                           "header, in place -- not just its .wcs sidecar. Modifies the original "
+                           "file; off by default"});
         parser.process(app);
         return runDate(parser, out);
     }

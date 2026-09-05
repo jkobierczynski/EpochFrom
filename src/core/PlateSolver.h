@@ -17,6 +17,14 @@ struct PlateSolveResult {
     QString wcsFilePath;  // the .wcs sidecar this was read from
     QString errorMessage; // set when solved == false
 
+    // Set (non-empty) if options.updateFitsHeader was requested and writing
+    // the solution back into the original FITS file's own header ran into a
+    // problem. This does NOT affect `solved` -- the .wcs sidecar is written
+    // and read independently of this step, so a header-update failure here
+    // means "the solve succeeded but the image file wasn't annotated",
+    // never "the solve failed".
+    QString fitsHeaderUpdateWarning;
+
     // Raw linear (TAN, no SIP) WCS terms straight from the header, exposed
     // for callers that need the solver's *linear* WCS specifically rather
     // than the SIP-corrected center above -- equipment profiling is exactly
@@ -51,6 +59,16 @@ struct PlateSolveOptions {
     int downsample = 2;
     int cpuLimitSeconds = 55;
     QString solveFieldPath = QStringLiteral("solve-field"); // resolved via PATH by default
+
+    // Opt-in, off by default: after a successful solve, also copy the WCS
+    // (CRVAL/CRPIX/CD, SIP terms if present) and convenience decimal RA/DEC
+    // keys into the *original* image's own FITS header, in place -- not just
+    // into the separate .wcs sidecar this always writes. This modifies the
+    // user's original light frame on disk; see writeWcsIntoFits() in
+    // PlateSolver.cpp for exactly what gets touched and what deliberately
+    // doesn't (OBJCTRA/OBJCTDEC, the mount's original requested pointing,
+    // are left alone).
+    bool updateFitsHeader = false;
 };
 
 class PlateSolver {
@@ -73,6 +91,22 @@ public:
     // own -- and it's what lets this be tested without depending on
     // solve-field being installed at all.
     static PlateSolveResult readWcsFile(const QString &wcsPath);
+
+    // Copies the WCS solution (core TAN keywords, any SIP distortion terms,
+    // plus convenience decimal "RA"/"DEC" keys) from an already-solved .wcs
+    // sidecar into the original image's own FITS header, in place. This is
+    // what solve() calls internally when PlateSolveOptions::updateFitsHeader
+    // is set; exposed publicly (like readWcsFile) so it can be applied to
+    // an image that was already solved earlier, without re-solving, and so
+    // it can be unit-tested without depending on solve-field being
+    // installed. Deliberately does NOT touch OBJCTRA/OBJCTDEC -- that's the
+    // mount/capture software's own record of where it was *asked* to
+    // point, left alone on purpose. Returns an empty string on success, or
+    // a human-readable warning on failure; `result` supplies the RA/Dec
+    // written into the convenience keys (normally the return value of
+    // readWcsFile(wcsPath), or of solve() itself).
+    static QString writeWcsIntoFits(const QString &imagePath, const QString &wcsPath,
+                                     const PlateSolveResult &result);
 };
 
 } // namespace epochfrom

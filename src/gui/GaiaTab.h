@@ -32,6 +32,7 @@ public:
 
 private slots:
     void browseFits();
+    void browseWcs();
     void browseOut();
     void fillFromProject();
     void startQuery();
@@ -48,10 +49,12 @@ private:
     ProjectBar *projectBar_;
 
     QRadioButton *fitsRadio_;
+    QRadioButton *wcsRadio_;
     QRadioButton *raDecRadio_;
     QRadioButton *presetRadio_;
 
     QLineEdit *fitsPathEdit_;
+    QLineEdit *wcsPathEdit_;
 
     QDoubleSpinBox *raSpin_;
     QDoubleSpinBox *decSpin_;

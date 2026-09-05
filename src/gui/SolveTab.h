@@ -42,6 +42,7 @@ private:
     QPushButton *browseButton_;
     QCheckBox *wcsOnlyCheck_;
     QCheckBox *forceCheck_;
+    QCheckBox *updateFitsHeaderCheck_;
 
     QCheckBox *useHintCheck_;
     QDoubleSpinBox *raSpin_;

@@ -159,6 +159,18 @@ the search (much faster than a blind solve), `--scale-low`/`--scale-high`
 if you know your rig's approximate arcsec/pixel, or `--wcs-only` to skip
 solving entirely and just read an already-solved `.wcs` file.
 
+By default the solution is written only to the `.wcs` sidecar next to the
+image (which is all the rest of this pipeline needs), leaving the original
+light frame untouched. Pass `--update-fits-header` to *also* copy the WCS
+(CRVAL/CRPIX/CD, any SIP distortion terms, and convenience decimal `RA`/
+`DEC` keys) directly into the image's own FITS header, in place -- useful
+if you want your light frames self-describing for other tools that don't
+know to look for a sidecar. This modifies the original file, so it's off
+by default; it deliberately never touches `OBJCTRA`/`OBJCTDEC` (the mount's
+own record of where it was asked to point, left alone on purpose). The same
+flag is accepted by `calibrate` and `date`, applying to any sub they
+auto-solve along the way.
+
 `EpochFrom solve --dir <dir>` batch-solves every `.fits`/`.fit`/`.fts` file
 in a directory in one go, instead of invoking `solve` on each file by hand.
 Files that already have a matching `<name>.wcs` sidecar next to them are
@@ -249,6 +261,14 @@ the C++ tool on purpose, not a build dependency (it needs
 `pip install astropy astroquery`, which the GUI/CLI build doesn't). Run it
 from a terminal, or from `EpochFrom-gui`'s Gaia tab, which shells out to it
 via `QProcess` and streams its output live.
+
+The field center it queries around can come from `--fits <image>` (reads
+`CRVAL1/2`, falling back to `RA`/`DEC`, falling back to `OBJCTRA`/
+`OBJCTDEC`), `--wcs <sidecar.wcs>` (an already-solved `.wcs` file -- the
+most reliable source when you have one, and it doesn't require re-parsing
+the often much larger light frame), explicit `--ra`/`--dec`, or a
+known-good `--target` preset. The Gaia tab exposes all four as radio
+buttons.
 
 ## Docs
 

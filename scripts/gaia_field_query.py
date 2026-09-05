@@ -17,6 +17,12 @@ Usage examples:
     # falling back to RA/DEC, falling back to OBJCTRA/OBJCTDEC):
     python gaia_field_query.py --fits "northamerica_Light_Ha_240_secs_001.fits" --out gaia_northamerica.csv
 
+    # Or center it using an already-solved .wcs sidecar (from `EpochFrom
+    # solve` or solve-field directly) -- reads the same CRVAL1/CRVAL2, so
+    # this is the most reliable source when you have one, and doesn't
+    # require re-parsing the (often much larger) light frame itself:
+    python gaia_field_query.py --wcs "northamerica_Light_Ha_240_secs_001.wcs" --out gaia_northamerica.csv
+
     # Or give explicit coordinates (decimal degrees):
     python gaia_field_query.py --ra 314.925 --dec 43.664 --radius 0.9 --out gaia_northamerica.csv
 
@@ -50,6 +56,12 @@ PRESETS = {
 
 
 def get_center_from_fits(path):
+    """Reads a field center out of a FITS header. Works equally well on an
+    actual light frame's FITS file or on a solve-field/EpochFrom .wcs
+    sidecar -- a .wcs file is itself a headers-only FITS file, so the same
+    CRVAL1/CRVAL2 lookup applies to both (a sidecar just never falls through
+    to the RA/DEC or OBJCTRA/OBJCTDEC branches below, since it never carries
+    those capture-time keywords in the first place)."""
     from astropy.io import fits
     from astropy.coordinates import SkyCoord
     import astropy.units as u
@@ -96,6 +108,9 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     src = ap.add_mutually_exclusive_group(required=True)
     src.add_argument("--fits", help="A FITS file to read the field center from")
+    src.add_argument("--wcs", help="An already-solved .wcs sidecar to read the field center from "
+                                    "(reads CRVAL1/CRVAL2 -- same lookup as --fits, since a .wcs "
+                                    "file is itself a headers-only FITS file)")
     src.add_argument("--ra", type=float, help="Field center RA, decimal degrees")
     src.add_argument("--target", choices=sorted(PRESETS), help="Use a known-good preset field center")
     ap.add_argument("--dec", type=float, help="Field center Dec, decimal degrees (required with --ra)")
@@ -123,6 +138,8 @@ def main():
 
     if args.fits:
         ra, dec = get_center_from_fits(args.fits)
+    elif args.wcs:
+        ra, dec = get_center_from_fits(args.wcs)
     elif args.target:
         ra, dec = PRESETS[args.target]
         print(f"Using preset '{args.target}': RA={ra:.5f} Dec={dec:.5f}")

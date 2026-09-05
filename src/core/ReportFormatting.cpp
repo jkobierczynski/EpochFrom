@@ -25,6 +25,8 @@ void printSolveResult(const PlateSolveResult &result, QTextStream &out)
         << " arcsec/px\n";
     out << "Image size:    " << result.imageWidthPx << " x " << result.imageHeightPx << " px\n";
     out << "WCS file:      " << result.wcsFilePath << "\n";
+    if (!result.fitsHeaderUpdateWarning.isEmpty())
+        out << "warning: " << result.fitsHeaderUpdateWarning << "\n";
 }
 
 void printCalibrateResult(const EquipmentCalibrationResult &result, int totalSubsInput,

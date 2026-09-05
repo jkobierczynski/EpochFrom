@@ -70,6 +70,8 @@ void SolveWorker::run()
                    .arg(result.fieldWidthArcmin, 0, 'f', 1)
                    .arg(result.fieldHeightArcmin, 0, 'f', 1)
                    .arg(result.pixelScaleArcsecPerPix, 0, 'f', 3);
+        if (!result.fitsHeaderUpdateWarning.isEmpty())
+            out << "  warning: " << result.fitsHeaderUpdateWarning << "\n";
         ++solved;
         emit logLine(line);
     }

@@ -37,6 +37,14 @@ SolveTab::SolveTab(ProjectBar *projectBar, QWidget *parent) : QWidget(parent), p
     wcsOnlyCheck_ = new QCheckBox(tr("Skip solving -- read an existing .wcs file instead"));
     forceCheck_ = new QCheckBox(tr("Re-solve files that already have a .wcs sidecar"));
     forceCheck_->setEnabled(false);
+    updateFitsHeaderCheck_ = new QCheckBox(
+        tr("Also write the WCS into the image's own FITS header (modifies the original file!)"));
+    updateFitsHeaderCheck_->setToolTip(
+        tr("Off by default. EpochFrom always writes the solved WCS to a separate .wcs sidecar "
+           "file next to the image -- turning this on additionally copies CRVAL/CRPIX/CD, any "
+           "SIP distortion terms, and convenience RA/DEC keys directly into the image's own "
+           "FITS header, in place. This edits your original light frame on disk; it does not "
+           "touch OBJCTRA/OBJCTDEC (the mount's original requested pointing)."));
 
     auto *fromProjectButton = new QPushButton(tr("Fill from Project"));
     fromProjectButton->setToolTip(
@@ -56,6 +64,7 @@ SolveTab::SolveTab(ProjectBar *projectBar, QWidget *parent) : QWidget(parent), p
     inputLayout->addLayout(pathRow);
     inputLayout->addWidget(wcsOnlyCheck_);
     inputLayout->addWidget(forceCheck_);
+    inputLayout->addWidget(updateFitsHeaderCheck_);
     inputGroup->setLayout(inputLayout);
 
     useHintCheck_ = new QCheckBox(tr("Pointing hint (much faster than a blind solve)"));
@@ -156,6 +165,13 @@ SolveTab::SolveTab(ProjectBar *projectBar, QWidget *parent) : QWidget(parent), p
         wcsOnlyCheck_->setEnabled(!isDir);
         forceCheck_->setEnabled(isDir);
     });
+    connect(wcsOnlyCheck_, &QCheckBox::toggled, this, [this](bool wcsOnly) {
+        // --wcs-only just re-parses an existing .wcs file; there's no actual
+        // solve-field run and no image to write a header into, so this
+        // option would be silently ignored -- disable it rather than leave
+        // a checkbox that looks live but does nothing.
+        updateFitsHeaderCheck_->setEnabled(!wcsOnly);
+    });
     connect(useHintCheck_, &QCheckBox::toggled, this, [this](bool on) {
         raSpin_->setEnabled(on);
         decSpin_->setEnabled(on);
@@ -227,6 +243,7 @@ void SolveTab::startSolve()
     request.options.cpuLimitSeconds = cpuLimitSpin_->value();
     if (!solveFieldPathEdit_->text().trimmed().isEmpty())
         request.options.solveFieldPath = solveFieldPathEdit_->text().trimmed();
+    request.options.updateFitsHeader = updateFitsHeaderCheck_->isChecked();
 
     logView_->clear();
     setBusy(true);
