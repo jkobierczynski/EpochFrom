@@ -131,6 +131,42 @@ suggestion of auto-detecting equipment from frame metadata is flagged there
 as needing a manual override path anyway, since this library's own header
 metadata was found stale in places during prototyping).
 
+## Screenshots
+
+**Gaia tab** — downloading a field's reference catalog, here centered from
+an already-solved `.wcs` sidecar:
+
+![Gaia tab, querying Gaia DR3 from a .wcs sidecar](docs/images/EpochFrom-gui-gaia.jpg)
+
+**Calibrate tab** — fitting an equipment distortion profile from a
+directory of subs, with the fitted profile and per-sub RMS printed below:
+
+![Calibrate tab, fitting an equipment profile against Gaia](docs/images/EpochFrom-gui-calibrate.jpg)
+
+`calibrate` on the CLI, same pipeline, run against a different session
+(green channel) — the per-sub affine fit, per-sub residuals, and the
+internal-repeatability diagnostic that flags when Gaia match quality and
+sub-to-sub agreement disagree:
+
+![CLI output of `EpochFrom calibrate`](docs/images/EpochFrom-calibrate.jpg)
+
+**`tools/residual-field.html`** — the same calibration's residuals loaded
+into the spatial vector-field viewer, before correction (raw linear-WCS
+residuals, ~1160 mas RMS, and a clear radial/tangential pattern across the
+sensor):
+
+![Residual field before the distortion correction](docs/images/EpochFrom-residualbefore.jpg)
+
+...and after the chosen-order polynomial fit (~197 mas RMS, no structure
+left):
+
+![Residual field after the distortion correction](docs/images/EpochFrom-residualafter.jpg)
+
+**Date tab** — batch-dating a directory of subs against Gaia using a saved
+equipment profile:
+
+![Date tab, batch-dating a directory against Gaia with an equipment profile](docs/images/EpochFrom-gui-date.jpg)
+
 ## Building
 
 Dependencies (Ubuntu/Debian package names): `qt6-base-dev`, `libeigen3-dev`,
