@@ -4,6 +4,7 @@
 #include "EquipmentCalibrator.h"
 #include "EquipmentProfile.h"
 #include "ImageDater.h"
+#include "ReportFormatting.h"
 
 #include <QCoreApplication>
 #include <QCommandLineParser>
@@ -19,24 +20,6 @@
 using namespace epochfrom;
 
 namespace {
-
-QString jyearToDateString(double jyear)
-{
-    // Simple Julian-year -> approximate calendar date, good enough for a
-    // human-readable label (the fit result itself is the number that
-    // matters). 365.25-day Julian year, epoch 2000.0 = 2000-01-01T12:00Z,
-    // matching astropy's Time(..., format="jyear") convention closely
-    // enough for display purposes.
-    //
-    // Deliberately pure QDate arithmetic, no QTime/timezone involved: a
-    // day-precision label doesn't need one, and QDateTime's
-    // (QDate, QTime, Qt::TimeSpec, int) constructor is deprecated as of
-    // newer Qt6 (in favor of QTimeZone) -- sidestepping it here means this
-    // doesn't need to chase that API across Qt6 minor versions.
-    const double daysSinceJ2000 = (jyear - 2000.0) * 365.25 - 0.5; // -0.5: J2000.0 is noon, not midnight
-    const QDate j2000(2000, 1, 1);
-    return j2000.addDays(static_cast<qint64>(std::lround(daysSinceJ2000))).toString("yyyy-MM-dd");
-}
 
 int runSelfTest(const QCommandLineParser &parser, QTextStream &out)
 {
@@ -118,14 +101,7 @@ int runSolveOne(const QString &imagePath, const PlateSolveOptions &options, bool
         return 1;
     }
 
-    out << "RA:            " << QString::number(result.centerRaDeg, 'f', 6) << " deg\n";
-    out << "Dec:           " << QString::number(result.centerDecDeg, 'f', 6) << " deg\n";
-    out << "Field size:    " << QString::number(result.fieldWidthArcmin, 'f', 2) << " x "
-        << QString::number(result.fieldHeightArcmin, 'f', 2) << " arcmin\n";
-    out << "Pixel scale:   " << QString::number(result.pixelScaleArcsecPerPix, 'f', 3)
-        << " arcsec/px\n";
-    out << "Image size:    " << result.imageWidthPx << " x " << result.imageHeightPx << " px\n";
-    out << "WCS file:      " << result.wcsFilePath << "\n";
+    printSolveResult(result, out);
 
     return 0;
 }
@@ -151,6 +127,7 @@ int runSolveDir(const QCommandLineParser &parser, QTextStream &out)
         const QFileInfo fi(dir.filePath(fitsName));
         const QString wcsPath = dir.filePath(fi.completeBaseName() + ".wcs");
         out << fitsName << ": ";
+        out.flush();
         if (!force && QFileInfo::exists(wcsPath)) {
             out << "already solved, skipping (pass --force to re-solve)\n";
             ++skipped;
@@ -196,17 +173,22 @@ int runSolve(const QCommandLineParser &parser, QTextStream &out)
 int runCalibrate(const QCommandLineParser &parser, QTextStream &out)
 {
     const QString gaiaPath = parser.value("gaia");
-    const QString outPath = parser.value("out");
+    const QString outPath = parser.value("outprofile");
     if (gaiaPath.isEmpty() || outPath.isEmpty()) {
-        out << "error: --gaia <path.csv> and --out <profile.json> are required\n";
+        out << "error: --gaia <path.csv> and --outprofile <profile.json> are required\n";
         return 1;
+    }
+    if (!outPath.endsWith(".json", Qt::CaseInsensitive)) {
+        out << "note: --outprofile " << outPath << " doesn't end in .json -- the file will be "
+               "saved as JSON regardless, but a .json extension is recommended so it's clear "
+               "what it is later (this is the file you pass to `date --profile`).\n";
     }
 
     QVector<CalibrationSub> subs;
-    if (parser.isSet("sub-dir")) {
-        const QDir dir(parser.value("sub-dir"));
+    if (parser.isSet("dir")) {
+        const QDir dir(parser.value("dir"));
         if (!dir.exists()) {
-            out << "error: --sub-dir " << dir.path() << " does not exist\n";
+            out << "error: --dir " << dir.path() << " does not exist\n";
             return 1;
         }
         const QStringList fitsFiles = dir.entryList({"*.fits", "*.fit", "*.fts"}, QDir::Files, QDir::Name);
@@ -216,6 +198,7 @@ int runCalibrate(const QCommandLineParser &parser, QTextStream &out)
             const QString wcsPath = dir.filePath(fi.completeBaseName() + ".wcs");
             if (!QFileInfo::exists(wcsPath)) {
                 out << fitsName << ": not yet solved, solving now...\n";
+                out.flush();
                 const PlateSolveResult solveResult = PlateSolver::solve(fi.filePath(), solveOptions);
                 if (!solveResult.solved) {
                     out << "warning: skipping " << fitsName << " -- solve failed: "
@@ -235,7 +218,7 @@ int runCalibrate(const QCommandLineParser &parser, QTextStream &out)
         const QStringList images = parser.values("sub");
         const QStringList wcsFiles = parser.values("wcs");
         if (images.isEmpty()) {
-            out << "error: pass --sub-dir <dir>, or one or more --sub <image> --wcs <image.wcs> "
+            out << "error: pass --dir <dir>, or one or more --sub <image> --wcs <image.wcs> "
                    "pairs\n";
             return 1;
         }
@@ -256,6 +239,7 @@ int runCalibrate(const QCommandLineParser &parser, QTextStream &out)
     }
     out << "Loaded " << catalog.size() << " usable stars from " << gaiaPath << "\n";
     out << "Calibrating against " << subs.size() << " sub(s)...\n";
+    out.flush();
 
     EquipmentCalibrationOptions options;
     if (parser.isSet("fwhm"))
@@ -282,197 +266,7 @@ int runCalibrate(const QCommandLineParser &parser, QTextStream &out)
         return 1;
     }
 
-    out << "\n--- Equipment calibration ---\n";
-    out << "Subs used:            " << result.nSubsUsed << " / " << subs.size() << "\n";
-    out << "Pooled observations:  " << result.nStarObservations << "\n";
-    out << "RMS before (linear WCS only): " << QString::number(result.rmsBeforeMas, 'f', 1) << " mas"
-        << QString(" (RA/xi axis %1 mas, Dec/eta axis %2 mas)")
-               .arg(result.rmsBeforeXiMas, 0, 'f', 1)
-               .arg(result.rmsBeforeEtaMas, 0, 'f', 1)
-        << "\n";
-    if (options.fitPerSubAffine) {
-        out << "RMS after per-sub rotation/scale/shear (before the shared fit): "
-            << QString::number(result.rmsAfterSubAffineMas, 'f', 1) << " mas"
-            << QString(" (RA/xi axis %1 mas, Dec/eta axis %2 mas)")
-                   .arg(result.rmsAfterSubAffineXiMas, 0, 'f', 1)
-                   .arg(result.rmsAfterSubAffineEtaMas, 0, 'f', 1)
-            << "\n";
-    }
-    out << "\n";
-    out << QString("%1  %2  %3  %4\n")
-               .arg("order", -6)
-               .arg("in-sample RMS", -16)
-               .arg("held-out RMS (mean +/- std)", -30)
-               .arg("kept");
-    for (const OrderCandidateResult &c : result.orderCandidates) {
-        out << QString("%1  %2 mas      %3 +/- %4 mas          %5\n")
-                   .arg(c.order, -6)
-                   .arg(c.inSampleRmsMas, 8, 'f', 1)
-                   .arg(c.heldoutRmsMeanMas, 8, 'f', 1)
-                   .arg(c.heldoutRmsStdMas, -6, 'f', 1)
-                   .arg(c.nKeptInSample);
-    }
-    out << "\nChosen order: " << result.chosenOrder << "\n";
-    if (result.overfittingWarning)
-        out << "NOTE: " << result.overfittingWarningText << "\n";
-
-    out << QString("\nAfter fitting:        in-sample RMS %1 mas, held-out RMS %2 +/- %3 mas\n")
-               .arg(result.profile.rmsAfterInSampleMas, 0, 'f', 1)
-               .arg(result.profile.rmsAfterHeldoutMas, 0, 'f', 1)
-               .arg(result.profile.rmsAfterHeldoutStdMas, 0, 'f', 1);
-    out << QString("                       (kept-observation RMS by axis: RA/xi %1 mas, Dec/eta %2 "
-                    "mas)\n")
-               .arg(result.rmsAfterXiMas, 0, 'f', 1)
-               .arg(result.rmsAfterEtaMas, 0, 'f', 1);
-
-    if (result.nStarsForRepeatability > 0) {
-        out << QString("Internal repeatability (sub-to-sub, %1 stars, no Gaia involved): median %2 "
-                        "mas, RMS %3 mas")
-                   .arg(result.nStarsForRepeatability)
-                   .arg(result.profile.internalRepeatabilityMedianMas, 0, 'f', 1)
-                   .arg(result.profile.internalRepeatabilityRmsMas, 0, 'f', 1);
-        out << QString(" (by axis: RA/xi %1 mas, Dec/eta %2 mas)\n")
-                   .arg(result.internalRepeatabilityXiMas, 0, 'f', 1)
-                   .arg(result.internalRepeatabilityEtaMas, 0, 'f', 1);
-    } else {
-        out << "Internal repeatability: not enough per-star sub coverage to compute (need more "
-               "subs, or subs with more overlap)\n";
-    }
-
-    // A pronounced imbalance between the two axes' repeatability (not the
-    // before/after distortion fit, which mixes in the optics) points at a
-    // cause tied to one mount axis specifically -- periodic error or poor
-    // polar alignment, both of which act along RA or Dec respectively, not
-    // symmetrically across the field the way field curvature would. Report
-    // it as a hint, not a verdict -- this doesn't rule out other causes.
-    if (result.nStarsForRepeatability > 0 && std::isfinite(result.internalRepeatabilityXiMas) &&
-        std::isfinite(result.internalRepeatabilityEtaMas)) {
-        const double lo = std::min(result.internalRepeatabilityXiMas, result.internalRepeatabilityEtaMas);
-        const double hi = std::max(result.internalRepeatabilityXiMas, result.internalRepeatabilityEtaMas);
-        if (lo > 0.0 && hi / lo > 1.5) {
-            const bool xiWorse = result.internalRepeatabilityXiMas > result.internalRepeatabilityEtaMas;
-            out << QString("-> Sub-to-sub repeatability is noticeably worse in %1 (%2 mas) than %3 "
-                            "(%4 mas) -- %5 mas is a real difference, not just noise between two "
-                            "similar numbers, and points at something tied to that mount axis "
-                            "specifically (tracking/periodic error for RA, polar alignment/drift "
-                            "for Dec) rather than the optics, which would affect both axes more "
-                            "evenly.\n")
-                       .arg(xiWorse ? "RA/xi" : "Dec/eta")
-                       .arg(hi, 0, 'f', 1)
-                       .arg(xiWorse ? "Dec/eta" : "RA/xi")
-                       .arg(lo, 0, 'f', 1)
-                       .arg(hi - lo, 0, 'f', 1);
-        }
-    }
-
-    if (result.profile.limitingFactor == "measurement_precision") {
-        out << "-> Your subs agree with each other about as well as they agree with Gaia after "
-               "calibration: measurement/centroiding precision looks like the limiting factor "
-               "here, not the fit. A better polynomial order or more reference stars is unlikely "
-               "to help further; better data (sharper focus, more subs, narrower filter) would.\n";
-    } else {
-        out << "-> There's a real gap between how well your subs agree with each other and how "
-               "well they match Gaia after calibration -- that could be a genuine remaining "
-               "distortion, or a data/matching issue worth a closer look, rather than just "
-               "measurement noise.\n";
-    }
-
-    if (!result.subAffineFits.isEmpty()) {
-        out << "\n--- Per-sub affine fit (rotation/scale/shear, removed before the shared fit) ---\n";
-        out << QString("%1  %2  %3  %4  %5  %6\n")
-                   .arg("#", -4)
-                   .arg("rotation", -12)
-                   .arg("scale err", -12)
-                   .arg("shear", -12)
-                   .arg("RMS before", -12)
-                   .arg("RMS after");
-        for (const SubAffineFit &a : result.subAffineFits) {
-            if (!a.fitted) {
-                out << QString("%1  -- skipped: %2\n").arg(a.subIndex, -4).arg(a.skipReason);
-                continue;
-            }
-            out << QString("%1  %2 deg   %3 %%    %4 deg   %5 mas   %6 mas\n")
-                       .arg(a.subIndex, -4)
-                       .arg(a.rotationDeg, 8, 'f', 4)
-                       .arg(a.scaleErrorPct, 8, 'f', 3)
-                       .arg(a.shearDeg, 8, 'f', 4)
-                       .arg(a.rmsBeforeMas, 8, 'f', 1)
-                       .arg(a.rmsAfterMas, 8, 'f', 1);
-        }
-        // A big spread here (rather than every sub landing on nearly the
-        // same rotation/scale) is the direct evidence for "this session's
-        // subs were each solved with their own small, independent error" --
-        // the shared distortion polynomial can't explain that kind of
-        // spread no matter its order, since it fits one function of pixel
-        // position shared by every sub.
-        QVector<double> rotations;
-        for (const SubAffineFit &a : result.subAffineFits) {
-            if (a.fitted && std::isfinite(a.rotationDeg))
-                rotations.push_back(a.rotationDeg);
-        }
-        if (rotations.size() > 1) {
-            const double lo = *std::min_element(rotations.begin(), rotations.end());
-            const double hi = *std::max_element(rotations.begin(), rotations.end());
-            if (hi - lo > 0.02) {
-                out << QString("-> Fitted rotation varies by %1 deg across subs (%2 to %3) -- these "
-                                "subs' own plate solves didn't agree with each other on position "
-                                "angle, which is exactly what a shared spatial distortion fit can't "
-                                "correct for on its own.\n")
-                           .arg(hi - lo, 0, 'f', 4)
-                           .arg(lo, 0, 'f', 4)
-                           .arg(hi, 0, 'f', 4);
-            }
-        }
-    }
-
-    if (!result.subResiduals.isEmpty()) {
-        out << "\n--- Per-sub residuals (chosen order " << result.chosenOrder << ") ---\n";
-        out << QString("%1  %2  %3  %4  %5  %6\n")
-                   .arg("#", -4)
-                   .arg("file", -28)
-                   .arg("obs", -6)
-                   .arg("kept", -6)
-                   .arg("RMS before", -12)
-                   .arg("RMS after");
-        for (const SubResidualResult &s : result.subResiduals) {
-            const QString baseName = QFileInfo(s.imagePath).fileName();
-            if (!s.skipReason.isEmpty()) {
-                out << QString("%1  %2  -- skipped: %3\n")
-                           .arg(s.subIndex, -4)
-                           .arg(baseName.left(28), -28)
-                           .arg(s.skipReason);
-                continue;
-            }
-            out << QString("%1  %2  %3  %4  %5 mas   %6 mas\n")
-                       .arg(s.subIndex, -4)
-                       .arg(baseName.left(28), -28)
-                       .arg(s.nObservations, -6)
-                       .arg(s.nKept, -6)
-                       .arg(s.rmsBeforeMas, 8, 'f', 1)
-                       .arg(s.rmsAfterMas, 8, 'f', 1);
-        }
-
-        // Flag the worst-fitting subs (by post-fit RMS) so a large aggregate
-        // residual can be traced back to specific frames rather than left as
-        // one opaque pooled number -- the whole point of this report.
-        QVector<SubResidualResult> ranked;
-        for (const SubResidualResult &s : result.subResiduals) {
-            if (s.skipReason.isEmpty() && std::isfinite(s.rmsAfterMas))
-                ranked.push_back(s);
-        }
-        if (ranked.size() > 3) {
-            std::sort(ranked.begin(), ranked.end(), [](const SubResidualResult &a, const SubResidualResult &b) {
-                return a.rmsAfterMas > b.rmsAfterMas;
-            });
-            out << "\nWorst-fitting subs (post-fit RMS):\n";
-            const int nWorst = std::min(3, int(ranked.size()));
-            for (int i = 0; i < nWorst; ++i) {
-                out << QString("  %1  %2 mas\n")
-                           .arg(QFileInfo(ranked[i].imagePath).fileName())
-                           .arg(ranked[i].rmsAfterMas, 0, 'f', 1);
-            }
-        }
-    }
+    printCalibrateResult(result, subs.size(), out);
 
     EquipmentProfile profile = result.profile;
     profile.label = parser.value("label");
@@ -504,6 +298,12 @@ int runCalibrate(const QCommandLineParser &parser, QTextStream &out)
 
     if (parser.isSet("residuals-csv")) {
         const QString csvPath = parser.value("residuals-csv");
+        if (!csvPath.endsWith(".csv", Qt::CaseInsensitive)) {
+            out << "note: --residuals-csv " << csvPath << " doesn't end in .csv -- the file will "
+                   "still be written as CSV, but a .csv extension is recommended so it's "
+                   "recognized by spreadsheet apps and by tools/residual-field.html's file "
+                   "picker.\n";
+        }
         QFile csvFile(csvPath);
         if (!csvFile.open(QIODevice::WriteOnly | QIODevice::Text)) {
             out << "error: failed to open " << csvPath << " for writing\n";
@@ -549,32 +349,6 @@ DateEstimateOptions buildDateOptions(const QCommandLineParser &parser, const Equ
     return options;
 }
 
-void printDateResult(const DateEstimateResult &result, QTextStream &out)
-{
-    out << "Image:               " << result.imagePath << "\n";
-    out << "Stars detected:      " << result.nStarsDetected << "\n";
-    out << "Stars used:          " << result.nStarsUsed << " (median match sep "
-        << QString::number(result.medianMatchSepArcsec, 'f', 3) << "\")\n";
-    out << "RMS residual:        " << QString::number(result.rmsResidualMas, 'f', 1) << " mas\n";
-    out << "Equipment profile:   "
-        << (result.usedEquipmentProfile ? "applied" : "none -- using platesolver's own WCS")
-        << " (assumed per-star precision " << QString::number(result.obsSigmaMasUsed, 'f', 0)
-        << " mas)\n";
-    out << "\nEstimated date:      " << jyearToDateString(result.epochJyear) << "\n";
-    out << "Epoch:               " << QString::number(result.epochJyear, 'f', 4) << " +/- "
-        << QString::number(result.epochSigmaYears, 'f', 4) << " yr ("
-        << QString::number(result.epochSigmaYears * 365.25, 'f', 0) << " days)\n";
-    out << "Zero-point offset:   RA " << QString::number(result.raOffsetMas, 'f', 1) << " mas, Dec "
-        << QString::number(result.decOffsetMas, 'f', 1) << " mas\n";
-    if (result.rankDeficient)
-        out << "WARNING: fit Jacobian is rank-deficient -- epoch and the RA/Dec offset aren't "
-               "fully separable with this star set; the epoch uncertainty above is optimistic.\n";
-    if (!result.converged)
-        out << "WARNING: fit did not report convergence.\n";
-    if (!result.profileValidityWarning.isEmpty())
-        out << "WARNING: " << result.profileValidityWarning << "\n";
-}
-
 int runDateOne(const QString &imagePath, const QString &wcsPath, const QVector<GaiaStar> &catalog,
                const DateEstimateOptions &options, QTextStream &out)
 {
@@ -608,6 +382,7 @@ int runDateDir(const QCommandLineParser &parser, const QVector<GaiaStar> &catalo
         const QFileInfo fi(dir.filePath(fitsName));
         QString wcsPath = dir.filePath(fi.completeBaseName() + ".wcs");
         out << fitsName << ": ";
+        out.flush();
         if (!QFileInfo::exists(wcsPath)) {
             const PlateSolveResult solveResult = PlateSolver::solve(fi.filePath(), solveOptions);
             if (!solveResult.solved) {
@@ -675,6 +450,16 @@ int runDate(const QCommandLineParser &parser, QTextStream &out)
             << (profile.label.isEmpty() ? parser.value("profile") : profile.label) << " (order "
             << profile.polyOrderChosen << ", held-out RMS "
             << QString::number(profile.rmsAfterHeldoutMas, 'f', 1) << " mas)\n\n";
+    } else if (!parser.isSet("noprofile")) {
+        out << "error: --profile <profile.json> (from `calibrate`) is required -- an "
+               "uncorrected rig's own optical distortion can swamp the proper-motion signal "
+               "this fit depends on, so dating without one is opt-in: pass --noprofile to "
+               "date against the platesolver's own uncorrected WCS instead.\n";
+        return 1;
+    } else {
+        out << "Dating without an equipment profile (--noprofile): using each image's raw, "
+               "uncorrected platesolver WCS. Estimated dates can be off by years if this rig "
+               "has any real uncorrected optical distortion -- see `calibrate --help`.\n\n";
     }
 
     const DateEstimateOptions options = buildDateOptions(parser, haveProfile ? &profile : nullptr);
@@ -694,6 +479,7 @@ int runDate(const QCommandLineParser &parser, QTextStream &out)
                                             : imageInfo.dir().filePath(imageInfo.completeBaseName() + ".wcs");
     if (!QFileInfo::exists(wcsPath)) {
         out << imageInfo.fileName() << ": not yet solved, solving now...\n";
+        out.flush();
         const PlateSolveResult solveResult = PlateSolver::solve(imagePath, buildSolveOptions(parser));
         if (!solveResult.solved) {
             out << "error: solve failed: " << solveResult.errorMessage << "\n";
@@ -772,7 +558,7 @@ int main(int argc, char *argv[])
     if (command == "calibrate") {
         parser.clearPositionalArguments();
         parser.addPositionalArgument("calibrate", "Fit an equipment distortion profile against Gaia");
-        parser.addOption({"sub-dir", "Directory of <name>.fits + <name>.wcs pairs to calibrate from",
+        parser.addOption({"dir", "Directory of <name>.fits + <name>.wcs pairs to calibrate from",
                            "dir"});
         parser.addOption({"sub", "A calibration light frame (repeatable; pair with --wcs, same order)",
                            "image"});
@@ -780,7 +566,10 @@ int main(int argc, char *argv[])
                            "path"});
         parser.addOption({"gaia", "Gaia catalog CSV covering the field (from gaia_field_query.py)",
                            "path"});
-        parser.addOption({"out", "Where to save the fitted equipment profile (JSON)", "path"});
+        parser.addOption({"outprofile",
+                           "Where to save the fitted equipment profile, as JSON -- give it a .json "
+                           "filename (this is the file `date --profile` reads)",
+                           "path"});
         parser.addOption({"fwhm", "Expected stellar FWHM, pixels", "px", "4.0"});
         parser.addOption({"threshold-sigma", "Detection threshold, multiples of background noise",
                            "sigma", "6.0"});
@@ -806,8 +595,8 @@ int main(int argc, char *argv[])
         parser.addOption({"residuals-csv",
                            "Also save a CSV of every pooled star observation (pixel position, "
                            "radius from crpix, before/after xi/eta residual, sub index) for "
-                           "spatial/per-axis inspection -- open tools/residual-field.html in a "
-                           "browser and load this file to visualize it",
+                           "spatial/per-axis inspection -- give it a .csv filename, then open "
+                           "tools/residual-field.html in a browser and load it to visualize",
                            "path"});
         parser.addOption({"ra", "Solve hint for any unsolved subs: RA, degrees (needs --dec too)", "deg"});
         parser.addOption({"dec", "Solve hint for any unsolved subs: Dec, degrees (needs --ra too)", "deg"});
@@ -841,8 +630,12 @@ int main(int argc, char *argv[])
                            "path"});
         parser.addOption({"profile",
                            "Equipment profile JSON (from `calibrate`) to apply instead of trusting "
-                           "the platesolver's own SIP fit",
+                           "the platesolver's own SIP fit -- required unless --noprofile is given",
                            "path"});
+        parser.addOption({"noprofile",
+                           "Date without an equipment profile, trusting the platesolver's own "
+                           "uncorrected WCS -- not recommended, but explicit opt-in since skipping "
+                           "--profile silently gave wildly wrong dates before this flag existed"});
         parser.addOption({"fwhm", "Expected stellar FWHM, pixels", "px", "4.0"});
         parser.addOption({"threshold-sigma", "Detection threshold, multiples of background noise",
                            "sigma", "6.0"});

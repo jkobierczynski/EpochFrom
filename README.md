@@ -72,9 +72,25 @@ with-profile paths recover a known injected epoch, plus that applying the
 profile measurably reduces the residual over not applying it to the same
 distorted data. See `EpochFrom date --help`.
 
-Not yet ported to C++: any UI (the GUI comes once the engine's proven from
-the CLI), and any automatic equipment-tagging for a dating run (today
-`--profile` is an explicit, manual choice per `date` invocation — the spec's
+A first desktop GUI is here too: `EpochFrom-gui` is a Qt Widgets app with a
+Solve/Calibrate/Date tab apiece, driving the same core library
+(`epoch_from_core`) the CLI does directly rather than shelling out to it.
+Each tab exposes that command's options as fields instead of flags, runs the
+actual work (a solve, a calibration directory batch, a dating run) on a
+background thread so the window stays responsive during a long solve, and
+prints its report using the exact same formatting code the CLI uses
+(`src/core/ReportFormatting.{h,cpp}`, factored out for this reason) so the
+two can't quietly drift apart on what a result says. It's a first pass, not
+full parity with the CLI: `calibrate`'s `--sub`/`--wcs` pair-list mode (for
+subs that aren't conveniently co-located in one directory) is still
+CLI-only, and there's no in-app residual-field plot yet -- the Tools menu
+just opens `tools/residual-field.html` in a browser, same as the CLI's own
+suggestion after a `--residuals-csv` export. See "Building" below for how to
+build it (or skip it) and where the binary ends up.
+
+Not yet ported to C++: any automatic equipment-tagging for a dating run
+(today `--profile` is an explicit, manual, and by-default-required choice
+per `date` invocation, opted out of with `--noprofile` — the spec's
 suggestion of auto-detecting equipment from frame metadata is flagged there
 as needing a manual override path anyway, since this library's own header
 metadata was found stale in places during prototyping).
@@ -86,13 +102,21 @@ Dependencies (Ubuntu/Debian package names): `qt6-base-dev`, `libeigen3-dev`,
 itself additionally needs astrometry.net's `solve-field` on `PATH` (with
 index files matching your field size) — that's a separate install, not a
 build dependency, and only needed at runtime for `EpochFrom solve` without
-`--wcs-only`.
+`--wcs-only`. The GUI additionally needs Qt6's widgets module -- on Debian/
+Ubuntu that's pulled in by `qt6-base-dev` already; if it isn't (a minimal
+Qt install can split it out), CMake configure prints a note and skips
+`EpochFrom-gui` rather than failing the whole build -- pass
+`-DEPOCHFROM_BUILD_GUI=OFF` to skip it deliberately and silence the note.
 
 ```
 cmake -B build -S .
 cmake --build build
 ctest --test-dir build --output-on-failure
 ```
+
+This builds both `build/src/cli/EpochFrom` (the command-line tool used
+throughout the rest of this README) and `build/src/gui/EpochFrom-gui` (the
+desktop app -- just run it, no arguments needed).
 
 `EpochFrom selftest --gaia tests/data/gaia_northamerica.csv` runs the same
 synthetic epoch-recovery check as the regression test, but as a one-off you
@@ -113,26 +137,29 @@ skipped by default (pass `--force` to re-solve them anyway); the same
 pointing/scale hints as single-file `solve` apply to every file in the
 batch. Prints a per-file line plus a final solved/skipped/failed tally.
 
-`EpochFrom calibrate --sub-dir <dir> --gaia <catalog.csv> --out profile.json`
+`EpochFrom calibrate --dir <dir> --gaia <catalog.csv> --outprofile profile.json`
 fits an equipment distortion profile from a directory of `<name>.fits` +
-`<name>.wcs` pairs. Any `.fits` file in the directory that doesn't yet have
-a matching `.wcs` is solved automatically before calibrating (same
-`--ra`/`--dec`/`--radius`/`--scale-low`/`--scale-high`/etc. hint options as
-`solve` are accepted here too, and apply to that auto-solve step) — so
-pointing `--sub-dir` at a folder of raw subs is enough; you don't need to
-run `EpochFrom solve` on each one yourself first, though you still can if
-you'd rather solve and inspect them individually (see
-`docs/equipment-profiling-spec.md` section 3 for why per-sub solving is
-what the fit is built on). `--sub`/`--wcs` pairs work too if your subs and
-their `.wcs` files aren't conveniently co-located. Prints the before/after
-RMS, the cross-validated order-selection table, the internal-repeatability
-diagnostic, and a per-sub residual report (each sub's observation count and
-before/after RMS, or why it was skipped -- no stars detected, no
-cross-matches, unreadable image/WCS, etc. -- plus the worst-fitting subs
-called out separately), then saves the fitted profile as JSON. That report
-is what tells you whether a large aggregate residual is a genuine
-distortion spread evenly across the session or a handful of bad subs (a
-meridian flip, a guiding hiccup, clouds) dragging the pooled numbers up.
+`<name>.wcs` pairs. `--outprofile` should be given a `.json` filename — it's
+the file `date --profile` reads back in; `calibrate` will still write it if
+you don't, but prints a note reminding you. Any `.fits` file in the
+directory that doesn't yet have a matching `.wcs` is solved automatically
+before calibrating (same `--ra`/`--dec`/`--radius`/`--scale-low`/
+`--scale-high`/etc. hint options as `solve` are accepted here too, and
+apply to that auto-solve step) — so pointing `--dir` at a folder of raw
+subs is enough; you don't need to run `EpochFrom solve` on each one
+yourself first, though you still can if you'd rather solve and inspect
+them individually (see `docs/equipment-profiling-spec.md` section 3 for
+why per-sub solving is what the fit is built on). `--sub`/`--wcs` pairs
+work too if your subs and their `.wcs` files aren't conveniently
+co-located. Prints the before/after RMS, the cross-validated
+order-selection table, the internal-repeatability diagnostic, and a
+per-sub residual report (each sub's observation count and before/after
+RMS, or why it was skipped -- no stars detected, no cross-matches,
+unreadable image/WCS, etc. -- plus the worst-fitting subs called out
+separately), then saves the fitted profile as JSON. That report is what
+tells you whether a large aggregate residual is a genuine distortion
+spread evenly across the session or a handful of bad subs (a meridian
+flip, a guiding hiccup, clouds) dragging the pooled numbers up.
 `--corrector-type refractive` also prints the narrowband-filter guidance
 from the spec's controlled comparison.
 
@@ -149,7 +176,8 @@ signature of per-sub plate-solve inconsistency rather than optics.
 
 Pass `--residuals-csv <path>` to also dump every pooled star observation
 (pixel position relative to the fixed reference, radius, before/after
-ξ/η residual, sub index, kept-in-fit flag) to a CSV. Open
+ξ/η residual, sub index, kept-in-fit flag) to a CSV -- give it a `.csv`
+filename (again, just a note if you don't). Open
 `tools/residual-field.html` in a browser and load that CSV to inspect it
 visually: a vector field of the residuals across the sensor, radius and
 per-sub scatter plots, and histograms, all rendered client-side (nothing
@@ -158,24 +186,29 @@ is uploaded). It's the fastest way to tell a radially-symmetric cause
 per-sub plate-solve position-angle error) or one tied to a single sub
 (guiding, meridian flip, clouds).
 
-`EpochFrom date <image> --gaia <catalog.csv>` estimates a single image's
-capture date: detects stars, converts them to sky coordinates, and fits the
-epoch at which Gaia's proper-motion-propagated positions best match what
-was observed. If `<image>` doesn't have a matching `.wcs` sidecar yet, it's
-solved automatically first (same solve-hint options as `solve`/`calibrate`
-apply here too). Pass `--profile <profile.json>` (from `calibrate`) to
-correct each detected star's position with that rig's calibrated distortion
-model instead of trusting the platesolver's own SIP fit — this is usually
-the difference between a date good to within a day or two and one whose
-uncertainty is measured in years, since an uncorrected rig's positional
-error can swamp the multi-year proper-motion signal the fit depends on (see
-`docs/equipment-profiling-spec.md` section 1). Prints the estimated date,
-the fitted epoch and its uncertainty, the RMS residual, and warns if the
+`EpochFrom date <image> --gaia <catalog.csv> --profile <profile.json>`
+estimates a single image's capture date: detects stars, converts them to
+sky coordinates, and fits the epoch at which Gaia's proper-motion-
+propagated positions best match what was observed. If `<image>` doesn't
+have a matching `.wcs` sidecar yet, it's solved automatically first (same
+solve-hint options as `solve`/`calibrate` apply here too). `--profile`
+(from `calibrate`) is required by default -- it corrects each detected
+star's position with that rig's calibrated distortion model instead of
+trusting the platesolver's own SIP fit, which is usually the difference
+between a date good to within a day or two and one whose uncertainty is
+measured in years, since an uncorrected rig's positional error can swamp
+the multi-year proper-motion signal the fit depends on (see
+`docs/equipment-profiling-spec.md` section 1). Pass `--noprofile` to
+explicitly opt out and date against the platesolver's own uncorrected WCS
+instead -- `date` refuses to run with neither flag, rather than silently
+producing a date that can be off by years. Prints the estimated date, the
+fitted epoch and its uncertainty, the RMS residual, and warns if the
 fitted date falls outside the profile's `valid_from`/`valid_to` range (the
 equipment may have been adjusted since calibration). `EpochFrom date --dir
-<dir> --gaia <catalog.csv>` batch-dates every `.fits`/`.fit`/`.fts` file in
-a directory the same way (auto-solving missing `.wcs` files as it goes),
-printing one line per file plus a dated/failed tally.
+<dir> --gaia <catalog.csv> --profile <profile.json>` batch-dates every
+`.fits`/`.fit`/`.fts` file in a directory the same way (auto-solving
+missing `.wcs` files as it goes), printing one line per file plus a
+dated/failed tally.
 
 ## Gaia data
 

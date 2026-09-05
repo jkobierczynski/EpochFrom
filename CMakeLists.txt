@@ -17,8 +17,26 @@ find_package(PkgConfig REQUIRED)
 pkg_check_modules(WCSLIB REQUIRED IMPORTED_TARGET wcslib)
 pkg_check_modules(CFITSIO REQUIRED IMPORTED_TARGET cfitsio)
 
+# The GUI (src/gui, "EpochFrom-gui") is a thin Qt Widgets front end over the
+# same core library the CLI uses -- optional at configure time (default on)
+# so a headless/CI build, or a machine that only has qt6-base-dev and not
+# qt6-base-dev-tools' widgets module, can still build everything else.
+option(EPOCHFROM_BUILD_GUI "Build the EpochFrom-gui desktop application" ON)
+if(EPOCHFROM_BUILD_GUI)
+    find_package(Qt6 QUIET COMPONENTS Widgets)
+    if(NOT Qt6Widgets_FOUND)
+        message(STATUS "Qt6::Widgets not found -- skipping EpochFrom-gui (install qt6-base-dev's "
+                        "widgets module to enable it, or pass -DEPOCHFROM_BUILD_GUI=OFF to silence "
+                        "this message)")
+        set(EPOCHFROM_BUILD_GUI OFF)
+    endif()
+endif()
+
 enable_testing()
 
 add_subdirectory(src/core)
 add_subdirectory(src/cli)
+if(EPOCHFROM_BUILD_GUI)
+    add_subdirectory(src/gui)
+endif()
 add_subdirectory(tests)

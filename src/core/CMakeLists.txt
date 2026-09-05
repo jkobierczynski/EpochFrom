@@ -22,6 +22,8 @@ add_library(epoch_from_core STATIC
     Wcs.cpp
     ImageDater.h
     ImageDater.cpp
+    ReportFormatting.h
+    ReportFormatting.cpp
 )
 
 target_include_directories(epoch_from_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

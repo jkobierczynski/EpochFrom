@@ -3,6 +3,7 @@
 #include <QDir>
 #include <QFileInfo>
 #include <QProcess>
+#include <QStandardPaths>
 
 #include <fitsio.h>
 #include <wcs.h>
@@ -11,6 +12,11 @@
 #include <cmath>
 #include <cstdlib>
 #include <cstring>
+
+#if defined(Q_OS_UNIX)
+#include <csignal>
+#include <sys/types.h>
+#endif
 
 namespace epochfrom {
 
@@ -217,9 +223,32 @@ PlateSolveResult PlateSolver::solve(const QString &imagePath, const PlateSolveOp
     }
     args << imagePath;
 
+    // solve-field is a multi-stage pipeline (source extraction, xylist
+    // augmentation, the actual matcher) and on a timeout we need to kill all
+    // of it, not just the one process we spawned directly -- QProcess::kill()
+    // only signals that direct child, so a lone SIGKILL to it can orphan a
+    // still-running grandchild (e.g. image2xy) that keeps burning CPU in the
+    // background indefinitely. Wrap the invocation in `setsid` (present on
+    // any Linux system, part of util-linux) so solve-field becomes its own
+    // session/process-group leader; a timeout then sends SIGKILL to the
+    // whole group (negative PID), taking every stage down with it. Falls
+    // back to a plain direct-child kill if `setsid` isn't found or on a
+    // non-Unix build.
+#if defined(Q_OS_UNIX)
+    const QString setsidPath = QStandardPaths::findExecutable("setsid");
+    const bool killWholeGroup = !setsidPath.isEmpty();
+#else
+    const bool killWholeGroup = false;
+#endif
+
     QProcess proc;
-    proc.setProgram(options.solveFieldPath);
-    proc.setArguments(args);
+    if (killWholeGroup) {
+        proc.setProgram(setsidPath);
+        proc.setArguments(QStringList{options.solveFieldPath} + args);
+    } else {
+        proc.setProgram(options.solveFieldPath);
+        proc.setArguments(args);
+    }
     proc.start();
     if (!proc.waitForStarted(10000)) {
         result.errorMessage =
@@ -232,6 +261,18 @@ PlateSolveResult PlateSolver::solve(const QString &imagePath, const PlateSolveOp
     // exit and flush output, rather than racing it.
     const int timeoutMs = (options.cpuLimitSeconds + 30) * 1000;
     if (!proc.waitForFinished(timeoutMs)) {
+#if defined(Q_OS_UNIX)
+        if (killWholeGroup) {
+            // setsid execs straight into solve-field without forking, so the
+            // PID QProcess tracked for its "setsid" child is solve-field's
+            // own PID post-exec -- and since setsid() makes the calling
+            // process both session and process-group leader, that PID also
+            // is the group's PGID. Negating it targets the whole group.
+            const qint64 pid = proc.processId();
+            if (pid > 0)
+                ::kill(-static_cast<pid_t>(pid), SIGKILL);
+        }
+#endif
         proc.kill();
         proc.waitForFinished(5000);
         result.errorMessage = QStringLiteral("solve-field timed out after %1s")
