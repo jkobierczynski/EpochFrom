@@ -1,4 +1,5 @@
 add_library(epoch_from_core STATIC
+    AngleWrap.h
     GaiaCatalog.h
     GaiaCatalog.cpp
     SpaceMotion.h

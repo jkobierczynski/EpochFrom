@@ -1,4 +1,5 @@
 #include "EpochFit.h"
+#include "AngleWrap.h"
 #include "SpaceMotion.h"
 
 #include <Eigen/Dense>
@@ -25,9 +26,11 @@ double angularSepArcsec(double ra1, double dec1, double ra2, double dec2)
     // few-arcsec match tolerances this is used for (matches the intent of
     // the Python prototype's astropy match_to_catalog_sky, without pulling
     // in a full haversine/Vincenty formula for a step that only needs to
-    // be right to ~1%).
+    // be right to ~1%). wrapRaDiffDeg keeps that approximation honest near
+    // RA 0/360, where two RA values for the same star can legitimately
+    // land on opposite sides of the branch cut -- see AngleWrap.h.
     const double cosDec = std::cos(0.5 * (dec1 + dec2) * kDegToRad);
-    const double dRa = (ra1 - ra2) * cosDec;
+    const double dRa = wrapRaDiffDeg(ra1 - ra2) * cosDec;
     const double dDec = (dec1 - dec2);
     return std::hypot(dRa, dDec) * 3600.0;
 }
@@ -98,7 +101,13 @@ Eigen::VectorXd residualsFor(const QVector<MatchedPair> &pairs, const Eigen::Vec
     for (int i = 0; i < pairs.size(); ++i) {
         const SpaceMotion::Position pred = SpaceMotion::propagate(pairs[i].catalogStar, t);
         const double cosDec = std::cos(pairs[i].catalogStar.decDeg * kDegToRad);
-        const double dxMas = (pairs[i].obsRaDeg - pred.raDeg) * cosDec * 3.6e6;
+        // wrapRaDiffDeg -- see the comment on angularSepArcsec above and
+        // AngleWrap.h: near RA 0/360 a plain subtraction can turn a
+        // sub-arcsecond agreement into a ~360-degree-scale bogus residual,
+        // which would otherwise dominate this fit's cost function outright
+        // (there's no sigma-clipping in this LM loop the way
+        // EquipmentCalibrator's fits have).
+        const double dxMas = wrapRaDiffDeg(pairs[i].obsRaDeg - pred.raDeg) * cosDec * 3.6e6;
         const double dyMas = (pairs[i].obsDecDeg - pred.decDeg) * 3.6e6;
         const double rx = dxMas - dRaMas;
         const double ry = dyMas - dDecMas;

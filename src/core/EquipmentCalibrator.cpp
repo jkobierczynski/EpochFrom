@@ -1,4 +1,5 @@
 #include "EquipmentCalibrator.h"
+#include "AngleWrap.h"
 #include "FitsImage.h"
 #include "LinearWcs.h"
 #include "PlateSolver.h"
@@ -240,13 +241,26 @@ double rmsOf(const QVector<double> &values, const QVector<bool> &mask)
 }
 
 // Held-out cross-validation for one candidate order: repeated random 50/50
-// train/test splits, plain (unclipped) lstsq fit on the train half each
-// time, RMS evaluated on the held-out half -- matches the Python
-// prototype's order-selection loop exactly (see
+// train/test splits, RMS evaluated on the held-out half -- matches the
+// Python prototype's order-selection loop (see
 // docs/equipment-profiling-spec.md section 5 for why this, not in-sample
 // RMS, is the number that must drive order selection).
+//
+// The train-half fit and the held-out RMS are both sigma-clipped
+// (clipSigma/nIter, same values as every other fit in this file), which
+// the original port of the prototype's loop wasn't: a plain, unclipped
+// least-squares fit has unbounded leverage from a single bad cross-match
+// (a cosmic ray or blended detection that happened to fall within
+// matchToleranceArcsec of some catalog star anyway), and with a plain sum
+// of squares on the test side too, one such point landing in *either*
+// half of a split could make an otherwise-good order's held-out RMS look
+// like the calibration is broken by many orders of magnitude, even though
+// every other fit this tool reports (the chosen order's own RMS, and each
+// sub's own affine fit) already guards against exactly this. Clipping
+// here brings order selection in line with that.
 void crossValidateOrder(const QVector<Observation> &obs, int order, double pixelScaleNorm,
-                         int nSplits, unsigned seed, double *outMeanMas, double *outStdMas)
+                         int nSplits, unsigned seed, double clipSigma, int nIter,
+                         double *outMeanMas, double *outStdMas)
 {
     const Eigen::MatrixXd M = buildDesignMatrix(obs, order, pixelScaleNorm);
     const int n = obs.size();
@@ -266,27 +280,42 @@ void crossValidateOrder(const QVector<Observation> &obs, int order, double pixel
     for (int trial = 0; trial < nSplits; ++trial) {
         std::shuffle(indices.begin(), indices.end(), rng);
         const int half = n / 2;
-        Eigen::MatrixXd Mtrain(half, M.cols());
-        Eigen::VectorXd dxiTrain(half), detaTrain(half);
-        for (int i = 0; i < half; ++i) {
-            Mtrain.row(i) = M.row(indices[i]);
-            dxiTrain(i) = dxi(indices[i]);
-            detaTrain(i) = deta(indices[i]);
-        }
-        const Eigen::VectorXd cxt = Mtrain.colPivHouseholderQr().solve(dxiTrain);
-        const Eigen::VectorXd cyt = Mtrain.colPivHouseholderQr().solve(detaTrain);
+
+        QVector<Observation> trainObs;
+        trainObs.reserve(half);
+        for (int i = 0; i < half; ++i)
+            trainObs.push_back(obs[indices[i]]);
+        const PolyFitResult trainFit = fitPolySip(trainObs, order, pixelScaleNorm, clipSigma, nIter);
 
         const int nTest = n - half;
-        double sumSq = 0.0;
+        QVector<double> testRes;
+        testRes.reserve(nTest);
         for (int i = half; i < n; ++i) {
             const Eigen::VectorXd row = M.row(indices[i]);
-            const double predX = row.dot(cxt);
-            const double predY = row.dot(cyt);
+            const double predX = row.dot(trainFit.cx);
+            const double predY = row.dot(trainFit.cy);
             const double dx = dxi(indices[i]) - predX;
             const double dy = deta(indices[i]) - predY;
-            sumSq += dx * dx + dy * dy;
+            testRes.push_back(std::hypot(dx, dy));
         }
-        rmsList.push_back(nTest > 0 ? std::sqrt(sumSq / nTest) : std::numeric_limits<double>::quiet_NaN());
+
+        // One clip pass on the held-out residuals themselves -- same idea
+        // as fitPolySip's own iterative clip, but a single pass is enough
+        // here: this is a diagnostic mean/std over many splits, not a fit
+        // whose coefficients need to converge.
+        double rawSumSq = 0.0;
+        for (double r : testRes)
+            rawSumSq += r * r;
+        const double rawSigma = nTest > 0 ? std::sqrt(rawSumSq / nTest) : 0.0;
+        double keptSumSq = 0.0;
+        int nKept = 0;
+        for (double r : testRes) {
+            if (r < clipSigma * rawSigma) {
+                keptSumSq += r * r;
+                ++nKept;
+            }
+        }
+        rmsList.push_back(nKept > 0 ? std::sqrt(keptSumSq / nKept) : std::numeric_limits<double>::quiet_NaN());
     }
 
     double mean = 0.0;
@@ -430,7 +459,14 @@ EquipmentCalibrationResult EquipmentCalibrator::calibrate(const QVector<Calibrat
             const double raTrue = gaiaRa[m.gaiaIdx];
             const double decTrue = gaiaDec[m.gaiaIdx];
             const double cosDec = std::cos(decTrue * M_PI / 180.0);
-            const double dxiMas = (raTrue - detRa[m.detIdx]) * cosDec * 3.6e6;
+            // wrapRaDiffDeg: raTrue and detRa are two independently-computed
+            // RA values for what crossMatch() already confirmed is the same
+            // star on the sky (within matchToleranceArcsec, via a proper
+            // wraparound-safe haversine separation) -- but near RA 0/360
+            // they can legitimately land on opposite sides of the branch
+            // cut, and a plain subtraction doesn't know that. See
+            // AngleWrap.h.
+            const double dxiMas = wrapRaDiffDeg(raTrue - detRa[m.detIdx]) * cosDec * 3.6e6;
             const double detaMas = (decTrue - detDec[m.detIdx]) * 3.6e6;
 
             Observation obs;
@@ -632,7 +668,8 @@ EquipmentCalibrationResult EquipmentCalibrator::calibrate(const QVector<Calibrat
 
         double heldoutMean = 0.0, heldoutStd = 0.0;
         crossValidateOrder(pooled, order, pixelScaleNorm, options.crossValidationSplits,
-                            options.crossValidationSeed, &heldoutMean, &heldoutStd);
+                            options.crossValidationSeed, options.sigmaClip, options.sigmaClipIterations,
+                            &heldoutMean, &heldoutStd);
 
         OrderCandidateResult candidate;
         candidate.order = order;
