@@ -47,12 +47,29 @@ inline QWidget *makeActionBar(QSplitter *splitter, QPushButton *primaryButton,
     layout->addWidget(moreOutputButton);
     layout->addWidget(moreOptionsButton);
 
+    // QSplitter::setSizes() does NOT scale a small ratio list (e.g. {1, 5})
+    // up to the splitter's actual size -- confirmed empirically: passing
+    // tiny values whose sum is far below the splitter's real extent snaps
+    // the stretch-0 widget down near its minimum regardless of which side
+    // of the ratio was bigger, so {1,5} and {5,1} rendered identically (the
+    // "More Options" preset silently behaved like "More Output"). Sizes
+    // that actually sum close to the splitter's current extent are honored
+    // correctly, so compute the split from the splitter's real size (height
+    // for the Qt::Vertical splitters every tab uses this for, width
+    // otherwise) at click time instead of handing it bare ratios.
+    auto applyRatio = [splitter](int optionsParts, int outputParts) {
+        const int total = splitter->orientation() == Qt::Vertical ? splitter->height()
+                                                                     : splitter->width();
+        const int totalParts = optionsParts + outputParts;
+        const int optionsSize = total * optionsParts / totalParts;
+        splitter->setSizes({optionsSize, total - optionsSize});
+    };
     QObject::connect(balancedButton, &QPushButton::clicked, splitter,
-                      [splitter]() { splitter->setSizes({1, 1}); });
+                      [applyRatio]() { applyRatio(1, 1); });
     QObject::connect(moreOutputButton, &QPushButton::clicked, splitter,
-                      [splitter]() { splitter->setSizes({1, 5}); });
+                      [applyRatio]() { applyRatio(1, 5); });
     QObject::connect(moreOptionsButton, &QPushButton::clicked, splitter,
-                      [splitter]() { splitter->setSizes({5, 1}); });
+                      [applyRatio]() { applyRatio(5, 1); });
     return bar;
 }
 
