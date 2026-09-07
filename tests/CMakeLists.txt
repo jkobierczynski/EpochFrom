@@ -76,3 +76,14 @@ target_link_libraries(proper_motion_overlay_test PRIVATE epoch_from_core Qt6::Co
 # space motion direction is derived independently from the WCS's own CD
 # matrix convention.
 add_test(NAME proper_motion_overlay_test COMMAND proper_motion_overlay_test)
+
+add_executable(report_formatting_test report_formatting_test.cpp)
+target_link_libraries(report_formatting_test PRIVATE epoch_from_core Qt6::Core)
+
+# Unit test for combineDateEstimates() (the `date --dir` batch's
+# inverse-variance-weighted average date): equal-weight combination lands
+# at the midpoint with a tighter combined sigma, an unequal-weight
+# combination is pulled toward the more precise estimate rather than
+# averaged evenly, and failed/non-converged/rank-deficient/non-finite-sigma
+# results are excluded rather than poisoning or dominating the average.
+add_test(NAME report_formatting_test COMMAND report_formatting_test)

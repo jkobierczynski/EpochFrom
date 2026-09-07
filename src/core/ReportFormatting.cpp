@@ -255,4 +255,54 @@ void printDateResult(const DateEstimateResult &result, QTextStream &out)
         out << "WARNING: " << result.profileValidityWarning << "\n";
 }
 
+CombinedDateEstimate combineDateEstimates(const QVector<DateEstimateResult> &results)
+{
+    CombinedDateEstimate combined;
+    double weightSum = 0.0;
+    double weightedEpochSum = 0.0;
+    for (const DateEstimateResult &result : results) {
+        if (!result.ok)
+            continue;
+        if (!result.converged || result.rankDeficient) {
+            ++combined.nExcluded;
+            continue;
+        }
+        if (!std::isfinite(result.epochSigmaYears) || result.epochSigmaYears <= 0.0) {
+            ++combined.nExcluded;
+            continue;
+        }
+        const double weight = 1.0 / (result.epochSigmaYears * result.epochSigmaYears);
+        weightedEpochSum += weight * result.epochJyear;
+        weightSum += weight;
+        ++combined.nCombined;
+    }
+
+    if (combined.nCombined == 0 || weightSum <= 0.0)
+        return combined; // ok stays false
+
+    combined.ok = true;
+    combined.epochJyear = weightedEpochSum / weightSum;
+    combined.epochSigmaYears = 1.0 / std::sqrt(weightSum);
+    return combined;
+}
+
+void printCombinedDateEstimate(const CombinedDateEstimate &combined, QTextStream &out)
+{
+    if (!combined.ok) {
+        out << "\nWeighted average date:  n/a -- no dated image had a usable epoch uncertainty "
+               "to weight by (converged, not rank-deficient, finite sigma)\n";
+        return;
+    }
+    out << "\nWeighted average date (" << combined.nCombined << " image"
+        << (combined.nCombined == 1 ? "" : "s");
+    if (combined.nExcluded > 0)
+        out << ", " << combined.nExcluded << " excluded -- not converged, rank-deficient, or no "
+                                              "usable sigma";
+    out << "):\n";
+    out << "  Date:   " << jyearToDateString(combined.epochJyear) << "\n";
+    out << "  Epoch:  " << QString::number(combined.epochJyear, 'f', 4) << " +/- "
+        << QString::number(combined.epochSigmaYears, 'f', 4) << " yr ("
+        << QString::number(combined.epochSigmaYears * 365.25, 'f', 1) << " days)\n";
+}
+
 } // namespace epochfrom

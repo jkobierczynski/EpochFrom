@@ -6,6 +6,8 @@
 
 #include <QString>
 #include <QTextStream>
+#include <QVector>
+#include <limits>
 
 namespace epochfrom {
 
@@ -44,5 +46,38 @@ void printCalibrateResult(const EquipmentCalibrationResult &result, int totalSub
 // the fitted epoch and its uncertainty, the zero-point offset, and any
 // rank-deficiency/non-convergence/profile-validity warnings.
 void printDateResult(const DateEstimateResult &result, QTextStream &out);
+
+// A single combined epoch estimate for a batch of dated images -- see
+// combineDateEstimates().
+struct CombinedDateEstimate {
+    bool ok = false;
+    int nCombined = 0; // how many per-image estimates went into the average
+    int nExcluded = 0; // dated images left out (no usable sigma to weight by -- see below)
+
+    double epochJyear = 0.0;
+    double epochSigmaYears = std::numeric_limits<double>::quiet_NaN();
+};
+
+// Combines a batch's individual per-image epoch estimates into one
+// inverse-variance-weighted average (weight = 1 / epochSigmaYears^2), the
+// standard way to combine several independent measurements of differing
+// precision into a single estimate -- a sub with a tighter epoch
+// uncertainty (more/better-matched stars, lower residual RMS) pulls the
+// combined date toward itself more than a noisier one, rather than every
+// sub counting equally regardless of quality. Only `results` entries with
+// result.ok are considered at all; among those, an entry is excluded (and
+// counted in nExcluded, not silently dropped) when its fit didn't converge,
+// was rank-deficient (its epochSigmaYears is documented as optimistic in
+// that case -- see DateEstimateResult -- and a falsely tiny sigma would let
+// it dominate the weighted average purely from an unreliable uncertainty,
+// not real precision), or has a non-finite/non-positive epochSigmaYears to
+// weight by. `ok` is false (with epochJyear/epochSigmaYears left at their
+// defaults) if no entry qualified.
+CombinedDateEstimate combineDateEstimates(const QVector<DateEstimateResult> &results);
+
+// Prints the combined weighted-average date from combineDateEstimates():
+// how many images it's combining (and how many were excluded, if any), the
+// resulting calendar date, and the combined epoch +/- its uncertainty.
+void printCombinedDateEstimate(const CombinedDateEstimate &combined, QTextStream &out);
 
 } // namespace epochfrom

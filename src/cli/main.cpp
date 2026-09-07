@@ -384,6 +384,7 @@ int runDateDir(const QCommandLineParser &parser, const QVector<GaiaStar> &catalo
     const PlateSolveOptions solveOptions = buildSolveOptions(parser);
 
     int dated = 0, failed = 0;
+    QVector<DateEstimateResult> dateResults;
     for (const QString &fitsName : fitsFiles) {
         const QFileInfo fi(dir.filePath(fitsName));
         QString wcsPath = dir.filePath(fi.completeBaseName() + ".wcs");
@@ -417,6 +418,7 @@ int runDateDir(const QCommandLineParser &parser, const QVector<GaiaStar> &catalo
                                                                     : QString());
         if (!result.profileValidityWarning.isEmpty())
             out << "  WARNING: " << result.profileValidityWarning << "\n";
+        dateResults.append(result);
         ++dated;
     }
 
@@ -424,6 +426,9 @@ int runDateDir(const QCommandLineParser &parser, const QVector<GaiaStar> &catalo
                .arg(dated)
                .arg(failed)
                .arg(fitsFiles.size());
+
+    printCombinedDateEstimate(combineDateEstimates(dateResults), out);
+
     return dated > 0 ? 0 : 1;
 }
 

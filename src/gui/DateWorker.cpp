@@ -5,6 +5,7 @@
 #include <QDir>
 #include <QFileInfo>
 #include <QTextStream>
+#include <limits>
 
 using namespace epochfrom;
 
@@ -90,6 +91,7 @@ void DateWorker::run()
     }
 
     int dated = 0, failed = 0;
+    QVector<DateEstimateResult> dateResults;
     for (const QString &fitsName : fitsFiles) {
         const QFileInfo fi(dir.filePath(fitsName));
         QString wcsPath = wcsSidecarPath(fi);
@@ -115,6 +117,7 @@ void DateWorker::run()
                                QString::number(result.epochJyear, 'f', 4),
                                QString::number(result.epochSigmaYears, 'f', 4),
                                QString::number(result.rmsResidualMas, 'f', 1)));
+        dateResults.append(result);
         ++dated;
     }
 
@@ -122,6 +125,22 @@ void DateWorker::run()
                      .arg(dated)
                      .arg(failed)
                      .arg(fitsFiles.size()));
+
+    const CombinedDateEstimate combined = combineDateEstimates(dateResults);
+    QString combinedText;
+    QTextStream combinedOut(&combinedText);
+    printCombinedDateEstimate(combined, combinedOut);
+    emit logLine(combinedText);
+    if (combined.ok) {
+        // Reuses the single-image summary signal for the batch's combined
+        // weighted-average date -- there's no single RMS residual for a
+        // combined estimate, so that field is left NaN; onSummary() in
+        // DateTab knows to leave it out when it is.
+        emit summaryReady(jyearToDateString(combined.epochJyear), combined.epochJyear,
+                           combined.epochSigmaYears,
+                           std::numeric_limits<double>::quiet_NaN());
+    }
+
     emit finished(dated > 0);
 }
 

@@ -345,7 +345,21 @@ equipment may have been adjusted since calibration). `EpochFrom date --dir
 <dir> --gaia <catalog.csv> --profile <profile.json>` batch-dates every
 `.fits`/`.fit`/`.fts` file in a directory the same way (auto-solving
 missing `.wcs` files as it goes), printing one line per file plus a
-dated/failed tally.
+dated/failed tally, followed by a **weighted average date**: every
+successfully-dated image's own epoch estimate combined into one
+inverse-variance-weighted average (weight = `1 / epochSigmaYears^2`,
+`ReportFormatting::combineDateEstimates`), so a sub whose fit landed a
+tighter epoch uncertainty (more/better-matched stars, lower residual RMS)
+pulls the combined date toward itself more than a noisier one, rather than
+every sub in the directory counting equally regardless of how good its own
+fit was. An image whose fit didn't converge, was rank-deficient (its
+reported uncertainty is documented as optimistic in that case, and letting
+it into the weighting could let a falsely tiny sigma dominate the average
+purely from an unreliable number, not real precision), or somehow has no
+finite/positive sigma is left out of the weighted average and counted
+separately, even though it's still counted as "dated" in the tally above
+it. The GUI's Date tab does the same for its own directory/batch runs,
+showing the combined result in its summary line above the per-file log.
 
 ## Gaia data
 

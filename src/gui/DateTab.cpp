@@ -21,6 +21,7 @@
 #include <QSplitter>
 #include <QThread>
 #include <QVBoxLayout>
+#include <cmath>
 #include <limits>
 
 namespace epochfrom::gui {
@@ -318,6 +319,18 @@ void DateTab::appendLog(const QString &text)
 void DateTab::onSummary(const QString &estimatedDate, double epochJyear, double epochSigmaYears,
                          double rmsResidualMas)
 {
+    // Directory/batch mode reuses this same signal for the run's combined
+    // weighted-average date (see DateWorker::run()), which has no single
+    // RMS residual of its own -- that field comes through as NaN, and the
+    // wording switches to make clear this is the batch's combined estimate,
+    // not one image's.
+    if (std::isnan(rmsResidualMas)) {
+        summaryLabel_->setText(tr("Weighted average date: %1  (epoch %2 +/- %3 yr)")
+                                    .arg(estimatedDate)
+                                    .arg(QString::number(epochJyear, 'f', 4))
+                                    .arg(QString::number(epochSigmaYears, 'f', 4)));
+        return;
+    }
     summaryLabel_->setText(tr("Estimated date: %1  (epoch %2 +/- %3 yr, RMS %4 mas)")
                                 .arg(estimatedDate)
                                 .arg(QString::number(epochJyear, 'f', 4))
