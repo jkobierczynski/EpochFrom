@@ -129,6 +129,8 @@ void StarfieldCanvas::paintEvent(QPaintEvent *event)
     fromPen.setWidthF(2.2);
     fromPen.setCosmetic(true);
 
+    const QColor goingColor(70, 220, 100);
+
     for (const epochfrom::ProperMotionArrow &arrow : arrows_) {
         // FITS pixel space (y up) -> display/image space (y down): x is
         // unchanged, y flips sign for a displacement, or maps as
@@ -136,13 +138,39 @@ void StarfieldCanvas::paintEvent(QPaintEvent *event)
         // setImage() used to flip the raster itself.
         const QPointF center(arrow.centerPixX - 1.0, imageHeight_ - arrow.centerPixY);
         const QPointF dir(arrow.dirPixX, -arrow.dirPixY);
-        const QPointF tip = center + dir * arrow.lengthPix;
-        const QPointF tail = center - dir * arrow.lengthPix;
+
+        // Lines start at the circle's own boundary, not its center, so they
+        // visibly touch the yellow circle rather than run underneath it;
+        // each line's own drawn length still equals arrow.lengthPix.
+        const QPointF goingStart = center + dir * circleRadiusPix_;
+        const QPointF comingStart = center - dir * circleRadiusPix_;
+        const QPointF tip = goingStart + dir * arrow.lengthPix;
+        const QPointF tail = comingStart - dir * arrow.lengthPix;
 
         painter.setPen(goingPen);
-        painter.drawLine(center, tip);
+        painter.drawLine(goingStart, tip);
         painter.setPen(fromPen);
-        painter.drawLine(center, tail);
+        painter.drawLine(comingStart, tail);
+
+        // Small filled arrowhead at the tip of the green line, showing
+        // which way the star is heading. Sized off the circle radius (so
+        // it stays a consistent, visible size across arrows regardless of
+        // each one's own length) but capped to a fraction of the line's
+        // own length so it doesn't swallow a very short line whole.
+        const double headLen = std::min(circleRadiusPix_ * 1.1, arrow.lengthPix * 0.6);
+        if (headLen > 0.75) {
+            const QPointF perp(-dir.y(), dir.x());
+            const double headHalfWidth = headLen * 0.55;
+            const QPointF headBase = tip - dir * headLen;
+            QPainterPath headPath;
+            headPath.moveTo(tip);
+            headPath.lineTo(headBase + perp * headHalfWidth);
+            headPath.lineTo(headBase - perp * headHalfWidth);
+            headPath.closeSubpath();
+            painter.setPen(Qt::NoPen);
+            painter.setBrush(goingColor);
+            painter.drawPath(headPath);
+        }
 
         painter.setPen(circlePen);
         painter.setBrush(Qt::NoBrush);

@@ -10,10 +10,12 @@
 #include <QFormLayout>
 #include <QGroupBox>
 #include <QHBoxLayout>
+#include <QKeySequence>
 #include <QLabel>
 #include <QLineEdit>
 #include <QPushButton>
 #include <QScrollArea>
+#include <QShortcut>
 #include <QSplitter>
 #include <QThread>
 #include <QVBoxLayout>
@@ -79,11 +81,14 @@ StarfieldTab::StarfieldTab(ProjectBar *projectBar, QWidget *parent) : QWidget(pa
     optionsLayout->addWidget(inputGroup);
     optionsLayout->addStretch();
 
-    auto *scrollArea = new QScrollArea;
-    scrollArea->setWidget(optionsColumn);
-    scrollArea->setWidgetResizable(true);
+    scrollArea_ = new QScrollArea;
+    scrollArea_->setWidget(optionsColumn);
+    scrollArea_->setWidgetResizable(true);
 
     loadButton_ = new QPushButton(tr("Load"));
+    fullscreenButton_ = new QPushButton(tr("Fullscreen"));
+    fullscreenButton_->setToolTip(tr("Hide the options panel and view the starfield full-window "
+                                      "(F11 to toggle, Escape to exit)"));
     summaryLabel_ = new QLabel;
     summaryLabel_->setWordWrap(true);
     canvas_ = new StarfieldCanvas;
@@ -97,7 +102,7 @@ StarfieldTab::StarfieldTab(ProjectBar *projectBar, QWidget *parent) : QWidget(pa
     // See SolveTab.cpp for why the options and the output share a
     // QSplitter instead of a flat, all-scrolling column.
     auto *splitter = new QSplitter(Qt::Vertical);
-    splitter->addWidget(scrollArea);
+    splitter->addWidget(scrollArea_);
     splitter->addWidget(outputColumn);
     splitter->setStretchFactor(0, 0);
     splitter->setStretchFactor(1, 1);
@@ -106,7 +111,7 @@ StarfieldTab::StarfieldTab(ProjectBar *projectBar, QWidget *parent) : QWidget(pa
 
     auto *mainLayout = new QVBoxLayout(this);
     mainLayout->addWidget(splitter, 1);
-    mainLayout->addWidget(makeActionBar(splitter, loadButton_));
+    mainLayout->addWidget(makeActionBar(splitter, loadButton_, {fullscreenButton_}));
 
     connect(browseImageButton, &QPushButton::clicked, this, &StarfieldTab::browseImage);
     connect(browseWcsButton, &QPushButton::clicked, this, &StarfieldTab::browseWcs);
@@ -114,6 +119,36 @@ StarfieldTab::StarfieldTab(ProjectBar *projectBar, QWidget *parent) : QWidget(pa
     connect(fromProjectButton, &QPushButton::clicked, this, &StarfieldTab::fillFromProject);
     connect(epochOverrideCheck_, &QCheckBox::toggled, epochSpin_, &QWidget::setEnabled);
     connect(loadButton_, &QPushButton::clicked, this, &StarfieldTab::startLoad);
+    connect(fullscreenButton_, &QPushButton::clicked, this, &StarfieldTab::toggleFullscreen);
+
+    auto *fullscreenShortcut = new QShortcut(QKeySequence(Qt::Key_F11), this);
+    fullscreenShortcut->setContext(Qt::WidgetWithChildrenShortcut);
+    connect(fullscreenShortcut, &QShortcut::activated, this, &StarfieldTab::toggleFullscreen);
+
+    auto *exitFullscreenShortcut = new QShortcut(QKeySequence(Qt::Key_Escape), this);
+    exitFullscreenShortcut->setContext(Qt::WidgetWithChildrenShortcut);
+    connect(exitFullscreenShortcut, &QShortcut::activated, this, [this]() {
+        if (fullscreenActive_)
+            toggleFullscreen();
+    });
+}
+
+void StarfieldTab::toggleFullscreen()
+{
+    fullscreenActive_ = !fullscreenActive_;
+
+    scrollArea_->setVisible(!fullscreenActive_);
+    summaryLabel_->setVisible(!fullscreenActive_);
+    fullscreenButton_->setText(fullscreenActive_ ? tr("Exit Fullscreen") : tr("Fullscreen"));
+
+    if (QWidget *top = window()) {
+        if (fullscreenActive_)
+            top->showFullScreen();
+        else
+            top->showNormal();
+    }
+
+    emit fullscreenToggled(fullscreenActive_);
 }
 
 void StarfieldTab::fillFromProject()

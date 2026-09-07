@@ -15,6 +15,7 @@
 #include <QMenuBar>
 #include <QMessageBox>
 #include <QStatusBar>
+#include <QTabBar>
 #include <QTabWidget>
 #include <QUrl>
 #include <QVBoxLayout>
@@ -37,7 +38,19 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
     tabs->addTab(new GaiaTab(projectBar), tr("Gaia"));
     tabs->addTab(new CalibrateTab(projectBar), tr("Calibrate"));
     tabs->addTab(new DateTab(projectBar), tr("Date"));
-    tabs->addTab(new StarfieldTab(projectBar), tr("Starfield"));
+    auto *starfieldTab = new StarfieldTab(projectBar);
+    tabs->addTab(starfieldTab, tr("Starfield"));
+
+    // The Starfield tab's own Fullscreen toggle (F11) puts this whole
+    // window into OS fullscreen and hides its own options panel; it can't
+    // reach this window's project bar/tab strip/menu/status bar itself, so
+    // it emits a signal for exactly this instead.
+    connect(starfieldTab, &StarfieldTab::fullscreenToggled, this, [this, projectBar, tabs](bool on) {
+        projectBar->setVisible(!on);
+        tabs->tabBar()->setVisible(!on);
+        menuBar()->setVisible(!on);
+        statusBar()->setVisible(!on);
+    });
 
     auto *central = new QWidget;
     auto *centralLayout = new QVBoxLayout(central);
