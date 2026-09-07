@@ -187,7 +187,7 @@ metadata was found stale in places during prototyping).
 ## Screenshots
 
 A full run through the GUI's own recommended order (also printed in its
-status bar): Gaia, then Solve, then Calibrate, then Date — against a real
+status bar): Solve, then Gaia, then Calibrate, then Date — against a real
 39-sub Sadr/Ha session — plus the Starfield viewer on its own.
 
 **Solve tab** — batch plate-solving the same session's 39 subs against that
