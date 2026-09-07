@@ -27,6 +27,11 @@ int main(int argc, char *argv[])
     QCoreApplication::setApplicationName("EpochFrom-gui");
     QCoreApplication::setApplicationVersion("0.1.0");
     app.setWindowIcon(epochfrom::gui::appIcon());
+    // Its own entry, distinct from EpochFrom-gui's -- see
+    // packaging/linux/epochfrom-starfield.desktop -- even though the
+    // shared applicationName above means the two still report the same
+    // WM_CLASS to the window manager.
+    QGuiApplication::setDesktopFileName(QStringLiteral("epochfrom-starfield"));
 
     QMainWindow window;
     window.setWindowTitle(QObject::tr("EpochFrom Starfield"));

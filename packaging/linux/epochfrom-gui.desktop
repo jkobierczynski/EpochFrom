@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=EpochFrom
+GenericName=Astrophotography Image Dater
+Comment=Date astrophotography images by plate-solving and fitting Gaia DR3 proper motions
+Exec=EpochFrom-gui
+Icon=epochfrom
+Terminal=false
+Categories=Science;Astronomy;
+StartupWMClass=EpochFrom-gui

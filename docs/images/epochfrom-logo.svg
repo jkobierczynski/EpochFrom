@@ -6,18 +6,21 @@
     came from, both anchored to the circle's own edge. Colors and geometry
     (line touches circle edge, arrowhead sized off the circle radius) match
     that widget's actual rendering exactly, not just visually approximated.
+    The whole glyph is translated as one rigid unit from its on-screen
+    position so the star (the circle) sits at this square canvas's own
+    center (256,256), rather than at the widget's off-center position.
   -->
   <rect x="0" y="0" width="512" height="512" rx="96" ry="96" fill="#121216"/>
 
   <!-- red: where the star came from -->
-  <line x1="178.91" y1="335.36" x2="99.42" y2="462.57"
+  <line x1="218.91" y1="315.36" x2="139.42" y2="442.57"
         stroke="#EB4646" stroke-width="15" stroke-linecap="round"/>
 
   <!-- green: direction of motion -->
-  <line x1="253.09" y1="216.64" x2="291.78" y2="154.73"
+  <line x1="293.09" y1="196.64" x2="331.78" y2="134.73"
         stroke="#46DC64" stroke-width="15" stroke-linecap="round"/>
-  <polygon points="332.58,89.43 327.69,177.17 255.86,132.29" fill="#46DC64"/>
+  <polygon points="372.58,69.43 367.69,157.17 295.86,112.29" fill="#46DC64"/>
 
   <!-- yellow: the star itself -->
-  <circle cx="216" cy="276" r="70" fill="none" stroke="#FFDD00" stroke-width="15"/>
+  <circle cx="256" cy="256" r="70" fill="none" stroke="#FFDD00" stroke-width="15"/>
 </svg>

@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=EpochFrom Starfield
+GenericName=Proper-Motion Viewer
+Comment=Standalone Gaia DR3 proper-motion starfield viewer (EpochFrom's Starfield tab on its own)
+Exec=EpochFrom-starfield
+Icon=epochfrom
+Terminal=false
+Categories=Science;Astronomy;
+StartupWMClass=EpochFrom-gui

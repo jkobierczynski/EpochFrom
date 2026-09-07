@@ -58,3 +58,34 @@ add_executable(epoch_from_starfield
 )
 set_target_properties(epoch_from_starfield PROPERTIES OUTPUT_NAME EpochFrom-starfield)
 target_link_libraries(epoch_from_starfield PRIVATE epoch_from_core Qt6::Widgets)
+
+install(TARGETS epoch_from_gui epoch_from_starfield
+        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+
+# Desktop-entry + hicolor-icon-theme install, so a proper `cmake --install`
+# actually gets EpochFrom a taskbar/dock icon (see the comment on
+# include(GNUInstallDirs) in the top-level CMakeLists.txt for why the
+# in-process QIcon set via setWindowIcon() isn't enough on its own). XDG
+# desktop entries are a Linux/freedesktop.org convention -- Windows and
+# macOS have their own, separate icon-embedding mechanisms this doesn't
+# attempt to cover.
+if(UNIX AND NOT APPLE)
+    install(FILES
+                ${CMAKE_SOURCE_DIR}/packaging/linux/epochfrom-gui.desktop
+                ${CMAKE_SOURCE_DIR}/packaging/linux/epochfrom-starfield.desktop
+            DESTINATION ${CMAKE_INSTALL_DATADIR}/applications)
+
+    # The .desktop files above reference Icon=epochfrom, resolved through
+    # the standard hicolor icon theme's per-size "apps" directories -- the
+    # square PNGs already rasterized for the in-app QIcon (AppIcon.h) cover
+    # every fixed size a theme would otherwise interpolate, and the SVG
+    # gives crisp results at anything larger still.
+    foreach(_epochfrom_icon_size 16 24 32 48 64 128 256 512)
+        install(FILES resources/icons/epochfrom-${_epochfrom_icon_size}.png
+                DESTINATION ${CMAKE_INSTALL_DATADIR}/icons/hicolor/${_epochfrom_icon_size}x${_epochfrom_icon_size}/apps
+                RENAME epochfrom.png)
+    endforeach()
+    install(FILES ${CMAKE_SOURCE_DIR}/docs/images/epochfrom-logo.svg
+            DESTINATION ${CMAKE_INSTALL_DATADIR}/icons/hicolor/scalable/apps
+            RENAME epochfrom.svg)
+endif()

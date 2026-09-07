@@ -6,6 +6,19 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 
+# CMAKE_INSTALL_BINDIR/DATADIR etc. for `cmake --install` -- currently used
+# by src/gui/CMakeLists.txt to install the .desktop files and hicolor-theme
+# icons that get EpochFrom-gui's taskbar/dock icon showing (see that file
+# and README's "Desktop integration" section for why those are needed at
+# all: the window's own icon, set via QApplication::setWindowIcon(), is
+# correct on the wire the moment you run the binary, but most desktop
+# environments' taskbar/dock -- GNOME Shell/Ubuntu Dock chief among them --
+# resolve *that* icon by matching the window to an installed .desktop
+# entry, not by reading the window's live icon pixels, so without one
+# installed they fall back to a generic icon even though nothing is wrong
+# with the app itself).
+include(GNUInstallDirs)
+
 # Single-config convenience: default to a Release build if the user didn't ask.
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
     set(CMAKE_BUILD_TYPE RelWithDebInfo CACHE STRING "" FORCE)

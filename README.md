@@ -1,3 +1,5 @@
+<img src="docs/images/epochfrom-logo.svg" alt="EpochFrom logo: a star with a green arrow showing its direction of motion and a red line showing where it came from" width="96" height="96">
+
 # EpochFrom
 
 Determine the capture date of an astrophotography image by plate-solving it
@@ -184,13 +186,26 @@ metadata was found stale in places during prototyping).
 
 ## Screenshots
 
+A full run through the GUI's own recommended order (also printed in its
+status bar): Gaia, then Solve, then Calibrate, then Date — against a real
+39-sub Sadr/Ha session — plus the Starfield viewer on its own.
+
 **Gaia tab** — downloading a field's reference catalog, here centered from
-an already-solved `.wcs` sidecar:
+an already-solved `.wcs` sidecar (0.9° radius, G<16, RUWE<1.4): 5154 stars
+back from the archive, with the fastest-moving few printed for a sanity
+check before they're saved to `gaia.csv`:
 
-![Gaia tab, querying Gaia DR3 from a .wcs sidecar](docs/images/EpochFrom-gui-gaia.jpg)
+![Gaia tab, querying Gaia DR3 from a .wcs sidecar and listing the fastest-moving stars in the field](docs/images/EpochFrom-gui-gaia.jpg)
 
-**Calibrate tab** — fitting an equipment distortion profile from a
-directory of subs, with the fitted profile and per-sub RMS printed below:
+**Solve tab** — batch plate-solving the same session's 39 subs against that
+pointing hint, one `.wcs` sidecar per image:
+
+![Solve tab, batch plate-solving a directory of subs with a pointing hint](docs/images/EpochFrom-gui-solve.jpg)
+
+**Calibrate tab** — fitting an equipment distortion profile against those
+39 subs' Gaia matches: order-4 polynomial, RMS falling from 1734.3 mas to
+472.4 ± 2.8 mas held-out, with the fitted profile and per-sub RMS printed
+below:
 
 ![Calibrate tab, fitting an equipment profile against Gaia](docs/images/EpochFrom-gui-calibrate.jpg)
 
@@ -201,22 +216,37 @@ sub-to-sub agreement disagree:
 
 ![CLI output of `EpochFrom calibrate`](docs/images/EpochFrom-calibrate.jpg)
 
-**`tools/residual-field.html`** — the same calibration's residuals loaded
-into the spatial vector-field viewer, before correction (raw linear-WCS
-residuals, ~1160 mas RMS, and a clear radial/tangential pattern across the
-sensor):
+**`tools/residual-field.html`** — that same Calibrate run's residuals
+loaded into the spatial vector-field viewer, before correction (raw
+linear-WCS residuals, 1729.4 mas RMS combined, axis ratio 1.36× — the
+rotational swirl across the sensor is the signature of uncorrected optical
+distortion):
 
-![Residual field before the distortion correction](docs/images/EpochFrom-residualbefore.jpg)
+![Residual field before the distortion correction, showing a rotational swirl pattern](docs/images/EpochFrom-residualbefore.jpg)
 
-...and after the chosen-order polynomial fit (~197 mas RMS, no structure
-left):
+...and after the chosen-order polynomial fit (451.7 mas RMS, axis ratio
+1.01× — the swirl is gone), with "Highlight top N" turned on to ring the
+50 largest remaining outlier vectors in green, the stars still worth a
+second look even after correction:
 
-![Residual field after the distortion correction](docs/images/EpochFrom-residualafter.jpg)
+![Residual field after the distortion correction, with the top 50 outlier vectors highlighted in green](docs/images/EpochFrom-residualafter.jpg)
 
-**Date tab** — batch-dating a directory of subs against Gaia using a saved
-equipment profile:
+**Date tab** — batch-dating that same directory of subs against Gaia using
+the equipment profile fitted above, ending in the inverse-variance
+weighted average across all 39 images:
 
-![Date tab, batch-dating a directory against Gaia with an equipment profile](docs/images/EpochFrom-gui-date.jpg)
+![Date tab, batch-dating a directory against Gaia with an equipment profile, showing the weighted average date](docs/images/EpochFrom-gui-date.jpg)
+
+**Starfield tab** — the top 15 fastest-moving Gaia stars in one of those
+subs, circled and arrowed at the sub's own capture epoch:
+
+![Starfield tab, circling and vector-arrowing the fastest-moving Gaia stars in one sub](docs/images/EpochFrom-gui-starfield.jpg)
+
+...and the same view in fullscreen (`EpochFrom-starfield`, or the tab's own
+Fullscreen button) against a wider field, the proper-motion glyph the app's
+logo is drawn from repeated once per star:
+
+![Starfield viewer in fullscreen, showing proper-motion vectors for many stars across a wide field](docs/images/EpochFrom-starfield-hero.jpg)
 
 ## Building
 
@@ -243,6 +273,35 @@ and `build/src/gui/EpochFrom-starfield` (the standalone proper-motion
 viewer, see the Starfield tab section above) -- just run any of them, no
 arguments needed.
 
+### Desktop integration (taskbar/dock icon)
+
+Running the binaries straight out of `build/` this way, the GUI's window
+does carry the app's own icon (title bar, alt-tab) from the moment it
+opens -- that's set in-process via `QApplication::setWindowIcon()`, no
+install required. What that *doesn't* get you, on most Linux desktops, is
+an icon in the taskbar or dock: GNOME Shell/Ubuntu Dock in particular
+resolve that one by matching the window to an installed `.desktop` entry,
+not by reading the window's own icon, so an unpackaged build shows a
+generic icon there even though nothing's actually wrong. To fix that too,
+install it properly instead of just building:
+
+```
+cmake -B build -S . -DCMAKE_INSTALL_PREFIX="$HOME/.local"
+cmake --build build
+cmake --install build
+```
+
+That puts `EpochFrom-gui`/`EpochFrom-starfield` on `$HOME/.local/bin` (make
+sure it's on `PATH`), installs `packaging/linux/*.desktop`, and installs
+the app icon into the `hicolor` icon theme those `.desktop` files reference
+(`$HOME/.local/share/icons/hicolor/<size>/apps/epochfrom.png`, plus an SVG
+for `scalable`). Log out/in, or run `update-desktop-database
+~/.local/share/applications` and `gtk-update-icon-cache` if your desktop
+picks up new entries without that, to see it show up. This is a
+Linux/freedesktop.org-specific mechanism -- it's not attempted on Windows
+or macOS, which each have their own separate way of associating an icon
+with a built executable.
+
 `EpochFrom selftest --gaia tests/data/gaia_northamerica.csv` runs the same
 synthetic epoch-recovery check as the regression test, but as a one-off you
 can point at any Gaia catalog CSV and tweak the noise/epoch/star-count
@@ -257,7 +316,14 @@ solving entirely and just read an already-solved `.wcs` file.
 
 By default the solution is written only to the `.wcs` sidecar next to the
 image (which is all the rest of this pipeline needs), leaving the original
-light frame untouched. Pass `--update-fits-header` to *also* copy the WCS
+light frame untouched -- and nothing else. `solve-field` itself defaults
+to also writing several byproducts next to the image on a successful
+solve (`<name>.new`, a full copy of the image with the WCS baked into its
+header -- easy to mistake for a second capture -- plus `<name>.rdls`,
+`<name>.match` and `<name>.corr`) and, on every attempt whether it solves
+or not, `<name>.axy` (its intermediate source list); EpochFrom explicitly
+suppresses all of these, since it already gets everything it needs from
+the `.wcs` sidecar. Pass `--update-fits-header` to *also* copy the WCS
 (CRVAL/CRPIX/CD, any SIP distortion terms, and convenience decimal `RA`/
 `DEC` keys) directly into the image's own FITS header, in place -- useful
 if you want your light frames self-describing for other tools that don't
@@ -321,7 +387,15 @@ per-sub scatter plots, and histograms, all rendered client-side (nothing
 is uploaded). It's the fastest way to tell a radially-symmetric cause
 (field curvature/scale) apart from a tangential/swirl one (rotation —
 per-sub plate-solve position-angle error) or one tied to a single sub
-(guiding, meridian flip, clouds).
+(guiding, meridian flip, clouds). The vector field panel's "Highlight top
+N" control (1-50) rings the N stars with the single largest residual --
+the outshoot -- in green with an arrow, on top of the ordinary vector
+cloud, so the very worst offenders (a bad cross-match, a genuinely
+distorted corner) are easy to pick out from a session's worth of points at
+a glance instead of hunting through tooltips one by one; it's ranked over
+every point in the CSV, not just the ones the panel happens to plot for
+legibility, so a real outlier is never missed just because sampling left
+it out of the drawn cloud.
 
 `EpochFrom date <image> --gaia <catalog.csv> --profile <profile.json>`
 estimates a single image's capture date: detects stars, converts them to
@@ -379,6 +453,11 @@ most reliable source when you have one, and it doesn't require re-parsing
 the often much larger light frame), explicit `--ra`/`--dec`, or a
 known-good `--target` preset. The Gaia tab exposes all four as radio
 buttons.
+
+It identifies itself to the archive as `EpochFrom/0.1.0` (overriding
+astroquery's own `astroquery/<astroquery version> ...` default) so Gaia
+sees which tool is actually making the requests; keep the version string
+here in sync with the C++ project's own version if that ever changes.
 
 ## Docs
 
