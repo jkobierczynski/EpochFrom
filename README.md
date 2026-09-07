@@ -187,8 +187,13 @@ metadata was found stale in places during prototyping).
 ## Screenshots
 
 A full run through the GUI's own recommended order (also printed in its
-status bar): Gaia, then Solve, then Calibrate, then Date — against a real
+status bar): Solve, then Gaia, then Calibrate, then Date — against a real
 39-sub Sadr/Ha session — plus the Starfield viewer on its own.
+
+**Solve tab** — batch plate-solving the same session's 39 subs against that
+pointing hint, one `.wcs` sidecar per image:
+
+![Solve tab, batch plate-solving a directory of subs with a pointing hint](docs/images/EpochFrom-gui-solve.jpg)
 
 **Gaia tab** — downloading a field's reference catalog, here centered from
 an already-solved `.wcs` sidecar (0.9° radius, G<16, RUWE<1.4): 5154 stars
@@ -196,11 +201,6 @@ back from the archive, with the fastest-moving few printed for a sanity
 check before they're saved to `gaia.csv`:
 
 ![Gaia tab, querying Gaia DR3 from a .wcs sidecar and listing the fastest-moving stars in the field](docs/images/EpochFrom-gui-gaia.jpg)
-
-**Solve tab** — batch plate-solving the same session's 39 subs against that
-pointing hint, one `.wcs` sidecar per image:
-
-![Solve tab, batch plate-solving a directory of subs with a pointing hint](docs/images/EpochFrom-gui-solve.jpg)
 
 **Calibrate tab** — fitting an equipment distortion profile against those
 39 subs' Gaia matches: order-4 polynomial, RMS falling from 1734.3 mas to
