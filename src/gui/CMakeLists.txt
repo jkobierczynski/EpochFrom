@@ -30,6 +30,8 @@ add_executable(epoch_from_gui
     NoWheelWidgets.h
     TabLayoutHelpers.h
     FitsDirScan.h
+    AppIcon.h
+    resources/icon.qrc
 )
 set_target_properties(epoch_from_gui PROPERTIES OUTPUT_NAME EpochFrom-gui)
 target_link_libraries(epoch_from_gui PRIVATE epoch_from_core Qt6::Widgets)
@@ -51,6 +53,8 @@ add_executable(epoch_from_starfield
     ProjectPaths.h
     NoWheelWidgets.h
     TabLayoutHelpers.h
+    AppIcon.h
+    resources/icon.qrc
 )
 set_target_properties(epoch_from_starfield PROPERTIES OUTPUT_NAME EpochFrom-starfield)
 target_link_libraries(epoch_from_starfield PRIVATE epoch_from_core Qt6::Widgets)

@@ -340,6 +340,25 @@ PlateSolveResult PlateSolver::solve(const QString &imagePath, const PlateSolveOp
     args << "--no-plots" << "--overwrite";
     args << "--cpulimit" << QString::number(options.cpuLimitSeconds);
     args << "--downsample" << QString::number(options.downsample);
+    // solve-field's own defaults, left alone, litter the image's directory
+    // with byproducts EpochFrom never reads: on a successful solve it writes
+    // <base>.new (a full copy of the image with the WCS baked into its
+    // header -- easy to mistake for a second capture), plus <base>.rdls,
+    // <base>.match and <base>.corr; on every attempt, solved or not, it
+    // also writes <base>.axy (its intermediate source-extraction list).
+    // EpochFrom already gets everything it needs from the .wcs sidecar
+    // (wcsPath below, which IS kept -- readWcsFile() reads it) and only
+    // ever touches the original FITS header when the caller explicitly
+    // opts into that via updateFitsHeader/writeWcsIntoFits, so none of
+    // these are wanted: point --axy at a real temp file (astrometry.net's
+    // own --temp-axy flag deletes it on exit; "none" isn't a valid value
+    // for --axy the way it is for the others below) and disable the rest
+    // outright.
+    args << "--temp-axy";
+    args << "--new-fits" << "none";
+    args << "--rdls" << "none";
+    args << "--match" << "none";
+    args << "--corr" << "none";
 
     if (!std::isnan(options.hintRaDeg) && !std::isnan(options.hintDecDeg)) {
         args << "--ra" << QString::number(options.hintRaDeg, 'f', 6);

@@ -1,0 +1,12 @@
+<!DOCTYPE RCC><RCC version="1.0">
+<qresource prefix="/icons">
+    <file alias="epochfrom-16.png">icons/epochfrom-16.png</file>
+    <file alias="epochfrom-24.png">icons/epochfrom-24.png</file>
+    <file alias="epochfrom-32.png">icons/epochfrom-32.png</file>
+    <file alias="epochfrom-48.png">icons/epochfrom-48.png</file>
+    <file alias="epochfrom-64.png">icons/epochfrom-64.png</file>
+    <file alias="epochfrom-128.png">icons/epochfrom-128.png</file>
+    <file alias="epochfrom-256.png">icons/epochfrom-256.png</file>
+    <file alias="epochfrom-512.png">icons/epochfrom-512.png</file>
+</qresource>
+</RCC>

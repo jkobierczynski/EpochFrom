@@ -5,6 +5,7 @@
 // captures. See StarfieldTab.h for the tab itself, which this window is a
 // thin wrapper around.
 
+#include "AppIcon.h"
 #include "ProjectBar.h"
 #include "StarfieldTab.h"
 
@@ -25,6 +26,7 @@ int main(int argc, char *argv[])
     QCoreApplication::setOrganizationName("EpochFrom");
     QCoreApplication::setApplicationName("EpochFrom-gui");
     QCoreApplication::setApplicationVersion("0.1.0");
+    app.setWindowIcon(epochfrom::gui::appIcon());
 
     QMainWindow window;
     window.setWindowTitle(QObject::tr("EpochFrom Starfield"));

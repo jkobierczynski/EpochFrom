@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!--
+    EpochFrom logo: the app's own proper-motion glyph from the Starfield tab
+    (see src/gui/StarfieldCanvas.cpp), a star (yellow circle) with a green
+    arrow showing the direction it's moving and a red line showing where it
+    came from, both anchored to the circle's own edge. Colors and geometry
+    (line touches circle edge, arrowhead sized off the circle radius) match
+    that widget's actual rendering exactly, not just visually approximated.
+  -->
+  <rect x="0" y="0" width="512" height="512" rx="96" ry="96" fill="#121216"/>
+
+  <!-- red: where the star came from -->
+  <line x1="178.91" y1="335.36" x2="99.42" y2="462.57"
+        stroke="#EB4646" stroke-width="15" stroke-linecap="round"/>
+
+  <!-- green: direction of motion -->
+  <line x1="253.09" y1="216.64" x2="291.78" y2="154.73"
+        stroke="#46DC64" stroke-width="15" stroke-linecap="round"/>
+  <polygon points="332.58,89.43 327.69,177.17 255.86,132.29" fill="#46DC64"/>
+
+  <!-- yellow: the star itself -->
+  <circle cx="216" cy="276" r="70" fill="none" stroke="#FFDD00" stroke-width="15"/>
+</svg>
