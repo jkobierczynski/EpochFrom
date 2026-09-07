@@ -44,6 +44,13 @@ Notes:
 import argparse
 import sys
 
+# Keep in sync with CMakeLists.txt's project(... VERSION ...) and the
+# QCoreApplication::setApplicationVersion() calls in src/cli/main.cpp and
+# src/gui/main.cpp -- this is what identifies EpochFrom to the Gaia archive
+# (see _set_gaia_user_agent() below), so a stale value here just means a
+# stale version string on the wire, not a broken query.
+EPOCHFROM_VERSION = "0.1.0"
+
 # Known-good field centers, taken from real plate solves (CRVAL1/CRVAL2) in
 # this library's 2018 sessions -- safe to reuse for any session pointed at
 # the same target, and a good fallback when a frame's own OBJCTRA/OBJCTDEC
@@ -104,6 +111,37 @@ def get_center_from_fits(path):
     )
 
 
+def _set_gaia_user_agent(gaia_client, user_agent):
+    """Overrides the User-Agent astroquery sends for every request this
+    Gaia client makes, e.g. "EpochFrom/0.1.0" instead of the library's own
+    "astroquery/<astroquery version> ...".
+
+    astroquery's TAP+ client (astroquery.utils.tap.conn.tapconn.TapConn)
+    hard-codes its User-Agent into a pair of private header dicts and
+    exposes no public config hook to override it -- Gaia.MAIN_GAIA_TABLE
+    and friends on astroquery.gaia.Conf only cover which table/columns are
+    queried, not the HTTP identity used to query them. Reaching the real
+    dicts means going through Python's name-mangled private attributes:
+    Tap.__init__ stores the live TapConn as self.__connHandler (mangled to
+    _Tap__connHandler on any Tap subclass, including GaiaClass), and
+    TapConn.__interna_init() sets self.__postHeaders / self.__getHeaders
+    (mangled to _TapConn__postHeaders / _TapConn__getHeaders).
+
+    This is inherently version-fragile -- it pokes at astroquery internals
+    that carry no compatibility guarantee -- so failures are swallowed with
+    a printed note rather than raised: a future astroquery that renames
+    these should degrade to "requests go out as astroquery/<ver> again",
+    not "EpochFrom's Gaia queries stop working".
+    """
+    try:
+        conn = gaia_client._Tap__connHandler
+        for headers in (conn._TapConn__postHeaders, conn._TapConn__getHeaders):
+            headers["User-Agent"] = user_agent
+    except AttributeError as e:
+        print(f"NOTE: could not override astroquery's User-Agent header "
+              f"(astroquery's internals may have changed): {e}")
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     src = ap.add_mutually_exclusive_group(required=True)
@@ -147,6 +185,7 @@ def main():
         ra, dec = args.ra, args.dec
 
     from astroquery.gaia import Gaia
+    _set_gaia_user_agent(Gaia, f"EpochFrom/{EPOCHFROM_VERSION}")
 
     # Deliberately no ORDER BY here -- some TAP backends (Gaia's included,
     # apparently) error out on an ORDER BY expression that isn't in the
