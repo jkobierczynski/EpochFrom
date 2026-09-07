@@ -24,7 +24,10 @@ class NoWheelComboBox;
 // writes the composed paths into its own fields once, on click. That keeps
 // the fields ordinary and freely editable afterward, rather than fields
 // that mysteriously change out from under the user whenever the project
-// bar changes.
+// bar changes. This bar's own "Fill All Tabs" button (see
+// fillAllRequested()) just triggers every tab's own button at once, so
+// setting up a whole session's worth of paths is one click instead of one
+// per tab -- MainWindow wires it up, since only it knows about every tab.
 class ProjectBar : public QWidget {
     Q_OBJECT
 public:
@@ -43,6 +46,9 @@ public:
 signals:
     void baseDirChanged(const QString &baseDir);
     void filterChanged(const QString &filter);
+    // Emitted when "Fill All Tabs" is clicked -- MainWindow connects this
+    // straight to every tab's own fillFromProject() slot.
+    void fillAllRequested();
 
 private slots:
     void browseBaseDir();

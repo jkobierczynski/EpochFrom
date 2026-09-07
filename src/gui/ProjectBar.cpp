@@ -45,6 +45,11 @@ ProjectBar::ProjectBar(QWidget *parent) : QWidget(parent)
            "\"%filter%\" substitution as the subs dir pattern). Default "
            "\"%filter%_residuals.csv\"."));
 
+    auto *fillAllButton = new QPushButton(tr("Fill All Tabs"));
+    fillAllButton->setToolTip(
+        tr("Compose every tab's paths from the base directory/filter/patterns below in one click "
+           "-- the same as clicking each tab's own \"Fill from Project\" button in turn."));
+
     auto *group = new QGroupBox(tr("Project"));
     auto *rowLayout = new QHBoxLayout;
     rowLayout->addWidget(new QLabel(tr("Base directory:")));
@@ -52,6 +57,7 @@ ProjectBar::ProjectBar(QWidget *parent) : QWidget(parent)
     rowLayout->addWidget(browseButton);
     rowLayout->addWidget(new QLabel(tr("Filter:")));
     rowLayout->addWidget(filterCombo_);
+    rowLayout->addWidget(fillAllButton);
     auto *patternRow = new QHBoxLayout;
     patternRow->addWidget(new QLabel(tr("Subs dir pattern:")));
     patternRow->addWidget(dirPatternEdit_);
@@ -87,6 +93,7 @@ ProjectBar::ProjectBar(QWidget *parent) : QWidget(parent)
         QSettings settings;
         settings.setValue(QStringLiteral("Project/ResidualsPattern"), text);
     });
+    connect(fillAllButton, &QPushButton::clicked, this, &ProjectBar::fillAllRequested);
 }
 
 void ProjectBar::loadSettings()

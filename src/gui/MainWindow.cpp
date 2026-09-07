@@ -34,12 +34,25 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
     auto *projectBar = new ProjectBar;
 
     auto *tabs = new QTabWidget;
-    tabs->addTab(new SolveTab(projectBar), tr("Solve"));
-    tabs->addTab(new GaiaTab(projectBar), tr("Gaia"));
-    tabs->addTab(new CalibrateTab(projectBar), tr("Calibrate"));
-    tabs->addTab(new DateTab(projectBar), tr("Date"));
+    auto *solveTab = new SolveTab(projectBar);
+    auto *gaiaTab = new GaiaTab(projectBar);
+    auto *calibrateTab = new CalibrateTab(projectBar);
+    auto *dateTab = new DateTab(projectBar);
     auto *starfieldTab = new StarfieldTab(projectBar);
+    tabs->addTab(solveTab, tr("Solve"));
+    tabs->addTab(gaiaTab, tr("Gaia"));
+    tabs->addTab(calibrateTab, tr("Calibrate"));
+    tabs->addTab(dateTab, tr("Date"));
     tabs->addTab(starfieldTab, tr("Starfield"));
+
+    // The Project bar's "Fill All Tabs" button composes every tab's paths
+    // in one click, instead of clicking each tab's own "Fill from Project"
+    // button in turn.
+    connect(projectBar, &ProjectBar::fillAllRequested, solveTab, &SolveTab::fillFromProject);
+    connect(projectBar, &ProjectBar::fillAllRequested, gaiaTab, &GaiaTab::fillFromProject);
+    connect(projectBar, &ProjectBar::fillAllRequested, calibrateTab, &CalibrateTab::fillFromProject);
+    connect(projectBar, &ProjectBar::fillAllRequested, dateTab, &DateTab::fillFromProject);
+    connect(projectBar, &ProjectBar::fillAllRequested, starfieldTab, &StarfieldTab::fillFromProject);
 
     // The Starfield tab's own Fullscreen toggle (F11) puts this whole
     // window into OS fullscreen and hides its own options panel; it can't
@@ -69,7 +82,8 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
 
     statusBar()->showMessage(
         tr("Gaia (once, per field), then Solve, then Calibrate (once, per rig), then Date -- set "
-           "a base directory above to fill in each tab's paths with one click."));
+           "a base directory above, then \"Fill All Tabs\" to fill in every tab's paths in one "
+           "click."));
 }
 
 QString MainWindow::findResidualFieldViewer() const
@@ -121,7 +135,8 @@ void MainWindow::showAbout()
            "command-line tool, plus the Gaia catalog downloader (scripts/gaia_field_query.py) -- "
            "see the project README for the full pipeline this automates. The Project bar above "
            "the tabs holds a base directory and filter shared by every tab's \"Fill from "
-           "Project\" button."));
+           "Project\" button -- or click the Project bar's own \"Fill All Tabs\" to fill in "
+           "every tab at once."));
 }
 
 } // namespace epochfrom::gui

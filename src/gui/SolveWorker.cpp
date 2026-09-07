@@ -27,6 +27,7 @@ void SolveWorker::run()
         }
         printSolveResult(result, out);
         emit logLine(text);
+        emit singleSolveReady(result);
         emit finished(true);
         return;
     }

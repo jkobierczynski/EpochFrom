@@ -44,11 +44,16 @@ signals:
     // its *own* extra UI, if it has any.
     void fullscreenToggled(bool fullscreen);
 
+public slots:
+    // Public (not just wired to this tab's own "Fill from Project" button)
+    // so the Project bar's consolidated "Fill All Tabs" button can trigger
+    // every tab's version of it in one click -- see MainWindow.cpp.
+    void fillFromProject();
+
 private slots:
     void browseImage();
     void browseWcs();
     void browseGaia();
-    void fillFromProject();
     void startLoad();
     void onWorkerFinished(epochfrom::gui::StarfieldWorker::Result result);
     void toggleFullscreen();

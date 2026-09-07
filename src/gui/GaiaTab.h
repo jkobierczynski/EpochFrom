@@ -30,11 +30,16 @@ public:
     explicit GaiaTab(ProjectBar *projectBar, QWidget *parent = nullptr);
     ~GaiaTab() override;
 
+public slots:
+    // Public (not just wired to this tab's own "Fill from Project" button)
+    // so the Project bar's consolidated "Fill All Tabs" button can trigger
+    // every tab's version of it in one click -- see MainWindow.cpp.
+    void fillFromProject();
+
 private slots:
     void browseFits();
     void browseWcs();
     void browseOut();
-    void fillFromProject();
     void startQuery();
     void cancelQuery();
     void onReadyRead();

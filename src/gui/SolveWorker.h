@@ -2,6 +2,7 @@
 
 #include "PlateSolver.h"
 
+#include <QMetaType>
 #include <QObject>
 #include <QString>
 
@@ -25,7 +26,14 @@ public:
     };
 
     explicit SolveWorker(Request request, QObject *parent = nullptr)
-        : QObject(parent), request_(std::move(request)) {}
+        : QObject(parent), request_(std::move(request))
+    {
+        // Registered here (constructor still runs on the GUI thread, before
+        // moveToThread()/start()) so PlateSolveResult is a known QMetaType
+        // before run() ever emits singleSolveReady() across the thread
+        // boundary.
+        qRegisterMetaType<epochfrom::PlateSolveResult>("epochfrom::PlateSolveResult");
+    }
 
 public slots:
     // Entry point once this object has been moved to its worker thread.
@@ -35,6 +43,13 @@ signals:
     // One or more lines of human-readable progress/report text -- appended
     // verbatim to the GUI's log pane.
     void logLine(const QString &text);
+    // Single-image mode only, emitted just before finished(true): the full
+    // solve result, so the tab can prefill a pointing hint + pixel-scale
+    // bounds for the directory batch that (usually) follows -- see
+    // SolveTab::onSingleSolveReady(). Emitted for both a fresh solve-field
+    // run and a --wcs-only read, since either way it's a real answer for
+    // "where is this session pointed."
+    void singleSolveReady(epochfrom::PlateSolveResult result);
     // Emitted once, when the job is done (successfully or not).
     void finished(bool ok);
 

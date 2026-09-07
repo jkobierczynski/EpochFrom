@@ -5,6 +5,7 @@
 #include "TabLayoutHelpers.h"
 
 #include <QCheckBox>
+#include <QDir>
 #include <QDoubleSpinBox>
 #include <QFileDialog>
 #include <QFileInfo>
@@ -22,6 +23,8 @@
 #include <QSplitter>
 #include <QThread>
 #include <QVBoxLayout>
+#include <algorithm>
+#include <cmath>
 #include <limits>
 
 namespace epochfrom::gui {
@@ -155,7 +158,7 @@ SolveTab::SolveTab(ProjectBar *projectBar, QWidget *parent) : QWidget(parent), p
     splitter->setStretchFactor(0, 0);
     splitter->setStretchFactor(1, 1);
     splitter->setChildrenCollapsible(false);
-    splitter->setSizes({1, 1});
+    applyInitialSplitterRatio(splitter, 1, 1);
 
     auto *mainLayout = new QVBoxLayout(this);
     mainLayout->addWidget(splitter, 1);
@@ -253,6 +256,7 @@ void SolveTab::startSolve()
     worker->moveToThread(thread_);
     connect(thread_, &QThread::started, worker, &SolveWorker::run);
     connect(worker, &SolveWorker::logLine, this, &SolveTab::appendLog);
+    connect(worker, &SolveWorker::singleSolveReady, this, &SolveTab::onSingleSolveReady);
     connect(worker, &SolveWorker::finished, this, &SolveTab::onFinished);
     connect(worker, &SolveWorker::finished, thread_, &QThread::quit);
     connect(thread_, &QThread::finished, worker, &QObject::deleteLater);
@@ -264,6 +268,58 @@ void SolveTab::appendLog(const QString &text)
 {
     logView_->insertPlainText(text);
     logView_->verticalScrollBar()->setValue(logView_->verticalScrollBar()->maximum());
+}
+
+void SolveTab::onSingleSolveReady(epochfrom::PlateSolveResult result)
+{
+    // Fires only from the single-image branch (see SolveWorker::run()), for
+    // both a fresh solve-field run and a --wcs-only read. The idea: once one
+    // sub from a session is solved, its result is a near-exact pointing hint
+    // for the rest of that same session's subs -- the mount barely moves
+    // (dithering aside) and the rig's pixel scale obviously doesn't change --
+    // so prefill both hint groups and point the directory field at this
+    // image's own folder, leaving just one more click (Solve, now in
+    // directory/batch mode) to process the rest.
+    if (!result.solved)
+        return;
+
+    raSpin_->setValue(result.centerRaDeg);
+    decSpin_->setValue(result.centerDecDeg);
+    // A generous but still narrow radius: twice the solved field's own
+    // diagonal, clamped to a sane range, to comfortably cover ordinary
+    // dithering between subs while still being far tighter (and faster)
+    // than a blind solve.
+    const double fieldDiagonalDeg =
+        std::hypot(result.fieldWidthArcmin, result.fieldHeightArcmin) / 60.0;
+    double radiusDeg = fieldDiagonalDeg * 2.0;
+    if (!std::isfinite(radiusDeg) || radiusDeg <= 0.0)
+        radiusDeg = 1.0;
+    radiusDeg = std::clamp(radiusDeg, 1.0, 5.0);
+    radiusSpin_->setValue(radiusDeg);
+    useHintCheck_->setChecked(true);
+
+    if (result.pixelScaleArcsecPerPix > 0.0) {
+        scaleLowSpin_->setValue(result.pixelScaleArcsecPerPix * 0.8);
+        scaleHighSpin_->setValue(result.pixelScaleArcsecPerPix * 1.2);
+        useScaleCheck_->setChecked(true);
+    }
+
+    // Switch to directory mode, pointed at the just-solved image's own
+    // folder, so the only remaining step is another click of Solve.
+    const QString solvedDir = QFileInfo(pathEdit_->text().trimmed()).dir().path();
+    directoryRadio_->setChecked(true);
+    if (!solvedDir.isEmpty())
+        pathEdit_->setText(solvedDir);
+
+    appendLog(tr("Prefilled pointing hint (RA %1 deg, Dec %2 deg, radius %3 deg) and pixel-scale "
+                 "bounds (%4-%5 \"/px) from this solve -- switched to directory mode. Click Solve "
+                 "again to batch-solve the rest of %6.\n")
+                  .arg(result.centerRaDeg, 0, 'f', 4)
+                  .arg(result.centerDecDeg, 0, 'f', 4)
+                  .arg(radiusDeg, 0, 'f', 2)
+                  .arg(scaleLowSpin_->value(), 0, 'f', 3)
+                  .arg(scaleHighSpin_->value(), 0, 'f', 3)
+                  .arg(solvedDir));
 }
 
 void SolveTab::onFinished(bool ok)

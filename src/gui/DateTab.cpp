@@ -166,7 +166,7 @@ DateTab::DateTab(ProjectBar *projectBar, QWidget *parent) : QWidget(parent), pro
     splitter->setStretchFactor(0, 0);
     splitter->setStretchFactor(1, 1);
     splitter->setChildrenCollapsible(false);
-    splitter->setSizes({1, 1});
+    applyInitialSplitterRatio(splitter, 1, 1);
 
     auto *mainLayout = new QVBoxLayout(this);
     mainLayout->addWidget(splitter, 1);

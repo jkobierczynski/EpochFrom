@@ -134,7 +134,25 @@ field nor the rig's own distortion depends on which filter a sub was shot
 through), and a calibration's residuals CSV defaults to
 `<base>/<filter>_residuals.csv`. It's a one-click convenience, not a
 constraint -- every field it fills stays a plain, freely-editable path
-afterward, and nothing requires using it at all.
+afterward, and nothing requires using it at all. The Project bar's own
+**"Fill All Tabs"** button runs every tab's "Fill from Project" in one
+click, so setting up a whole session (Gaia, Solve, Calibrate, Date,
+Starfield all pointed at the same base directory/filter) is one click
+instead of five.
+
+The **Solve** tab's workflow is built around solving one image first and
+letting that result set up the batch: solve a single sub (or read its
+`.wcs` with "Skip solving"), and once it succeeds, the tab automatically
+fills in and enables the "Pointing hint" (RA/Dec, with a generous radius
+based on the solved field size) and "Pixel-scale bounds" (±20% around the
+solved pixel scale) from that result, then switches to "Directory (batch)"
+mode pointed at the just-solved image's own folder. The rest of that
+session's subs share essentially the same pointing and the same rig, so
+those hints turn a blind search into a fast, narrow one -- click Solve
+again and the whole directory batch-solves using them. This only fires
+for the single-image mode's result (both a fresh solve and a `--wcs-only`
+read count), since that's the one that's meant to seed the directory run
+that follows it.
 
 The subs directory and residuals filename are actually **patterns**, shown
 as their own fields in the Project bar (default `%filter%` and
@@ -143,11 +161,14 @@ filter selected. If your capture software doesn't name a filter's session
 folder exactly `Ha` -- say it's `Light_Ha_600_secs` instead -- set the dir
 pattern to `Light_%filter%_600_secs` rather than renaming folders to match.
 
-Each tab's options sit in a scroll area above its command-output log, with
-the divider between them a `QSplitter` -- drag it, or click one of the
-"Balanced"/"More Output"/"More Options" presets in the action bar, which
-also keeps the tab's primary button (Solve/Query Gaia/Calibrate/Date)
-visible regardless of scroll position. Every spin box and combo box in the
+Each tab's options sit in a scroll area above its command-output log (or,
+on the Starfield tab, the starfield canvas), with the divider between them
+a `QSplitter` -- drag it, or click one of the "Balanced"/"More
+Output"/"More Options" presets in the action bar, which also keeps the
+tab's primary button (Solve/Query Gaia/Calibrate/Date/Load) visible
+regardless of scroll position. All five tabs start out on the same even,
+"Balanced" split, so the layout looks and feels consistent switching
+between them (`src/gui/TabLayoutHelpers.h`). Every spin box and combo box in the
 GUI also ignores mouse-wheel scrolling unless it currently has keyboard
 focus (`src/gui/NoWheelWidgets.h`), since Qt's default behavior -- accepting
 wheel input on mere hover -- meant scrolling down a tab's options could

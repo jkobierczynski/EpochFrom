@@ -25,12 +25,17 @@ public:
     // its base directory/filter back this tab's "Fill from Project" button.
     explicit DateTab(ProjectBar *projectBar, QWidget *parent = nullptr);
 
+public slots:
+    // Public (not just wired to this tab's own "Fill from Project" button)
+    // so the Project bar's consolidated "Fill All Tabs" button can trigger
+    // every tab's version of it in one click -- see MainWindow.cpp.
+    void fillFromProject();
+
 private slots:
     void browsePath();
     void browseWcs();
     void browseGaia();
     void browseProfile();
-    void fillFromProject();
     void startDate();
     void appendLog(const QString &text);
     void onSummary(const QString &estimatedDate, double epochJyear, double epochSigmaYears,

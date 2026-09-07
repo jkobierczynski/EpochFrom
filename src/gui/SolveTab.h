@@ -1,5 +1,7 @@
 #pragma once
 
+#include "PlateSolver.h"
+
 #include <QWidget>
 
 class QCheckBox;
@@ -24,11 +26,17 @@ public:
     // its base directory/filter back this tab's "Fill from Project" button.
     explicit SolveTab(ProjectBar *projectBar, QWidget *parent = nullptr);
 
+public slots:
+    // Public (not just wired to this tab's own "Fill from Project" button)
+    // so the Project bar's consolidated "Fill All Tabs" button can trigger
+    // every tab's version of it in one click -- see MainWindow.cpp.
+    void fillFromProject();
+
 private slots:
     void browsePath();
-    void fillFromProject();
     void startSolve();
     void appendLog(const QString &text);
+    void onSingleSolveReady(epochfrom::PlateSolveResult result);
     void onFinished(bool ok);
 
 private:

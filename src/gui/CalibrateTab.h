@@ -27,12 +27,17 @@ public:
     // its base directory/filter back this tab's "Fill from Project" button.
     explicit CalibrateTab(ProjectBar *projectBar, QWidget *parent = nullptr);
 
+public slots:
+    // Public (not just wired to this tab's own "Fill from Project" button)
+    // so the Project bar's consolidated "Fill All Tabs" button can trigger
+    // every tab's version of it in one click -- see MainWindow.cpp.
+    void fillFromProject();
+
 private slots:
     void browseDir();
     void browseGaia();
     void browseOutProfile();
     void browseResidualsCsv();
-    void fillFromProject();
     void startCalibrate();
     void appendLog(const QString &text);
     void onSummary(int chosenOrder, double rmsBeforeMas, double rmsAfterHeldoutMas,

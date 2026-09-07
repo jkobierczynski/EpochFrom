@@ -1,5 +1,6 @@
 #pragma once
 
+#include <QMetaType>
 #include <QString>
 #include <limits>
 
@@ -110,3 +111,16 @@ public:
 };
 
 } // namespace epochfrom
+
+// Declared here (right next to the struct, in core) rather than in whichever
+// GUI header happens to use it in a signal/slot first -- moc concatenates
+// every source file's generated code into one translation unit
+// (mocs_compilation.cpp), so if this declaration only lived in one of
+// several headers that reference PlateSolveResult in a Q_OBJECT
+// signal/slot, whichever header's moc output happened to come first would
+// implicitly instantiate the generic (unregistered) QMetaTypeId before this
+// specialization was ever seen, and the build would fail with "redefinition
+// of struct QMetaTypeId" / "specialization after instantiation". Declaring
+// it in PlateSolver.h -- included by every one of those headers -- avoids
+// the ordering dependency entirely.
+Q_DECLARE_METATYPE(epochfrom::PlateSolveResult)
