@@ -6,7 +6,7 @@
     --ink:#172033; --ink-muted:#5B6780; --ink-faint:#8892A6;
     --grid:#D6DDE7; --line:#C7D0DE;
     --xi:#B9782F; --eta:#00879E; --accent:#B9782F;
-    --clip:#97A1B5; --warn:#C2410C;
+    --clip:#97A1B5; --warn:#C2410C; --outlier:#1F9D55;
     --font-sans:'IBM Plex Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
     --font-mono:'IBM Plex Mono',ui-monospace,'SF Mono',Menlo,Consolas,monospace;
     color-scheme: light dark;
@@ -17,7 +17,7 @@
       --ink:#E8ECF2; --ink-muted:#94A0B8; --ink-faint:#5E6B85;
       --grid:#263049; --line:#2E3A56;
       --xi:#B87F2A; --eta:#00879E; --accent:#B87F2A;
-      --clip:#5C6884; --warn:#E0703A;
+      --clip:#5C6884; --warn:#E0703A; --outlier:#4ADE80;
     }
   }
   :root[data-theme="dark"]{
@@ -25,7 +25,7 @@
     --ink:#E8ECF2; --ink-muted:#94A0B8; --ink-faint:#5E6B85;
     --grid:#263049; --line:#2E3A56;
     --xi:#B87F2A; --eta:#00879E; --accent:#B87F2A;
-    --clip:#5C6884; --warn:#E0703A;
+    --clip:#5C6884; --warn:#E0703A; --outlier:#4ADE80;
   }
 
   *{box-sizing:border-box;}
@@ -120,6 +120,27 @@
   .legend .item{display:inline-flex; align-items:center; gap:6px;}
   .legend .swatch{width:10px; height:10px; border-radius:2px;}
 
+  .outlierrow{
+    display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+    margin-top:12px; padding-top:12px; border-top:1px solid var(--line);
+  }
+  .outlierrow label{
+    display:inline-flex; align-items:center; gap:7px; font-size:12.5px;
+    color:var(--ink); font-weight:500; cursor:pointer;
+  }
+  .outlierrow input[type=checkbox]{width:15px; height:15px; accent-color:var(--outlier); cursor:pointer;}
+  .outlierrow input[type=number]{
+    width:56px; font-family:var(--font-mono); font-size:12.5px; padding:5px 7px;
+    border-radius:6px; border:1px solid var(--line); background:var(--surface-2); color:var(--ink);
+  }
+  .outlierrow input[type=number]:disabled{opacity:.45;}
+  .outlierrow input[type=number]:focus-visible{outline:2px solid var(--accent); outline-offset:1px;}
+  .outlierrow .hint{color:var(--ink-faint); font-size:11.5px;}
+  .outlierrow .hintswatch{
+    display:inline-block; width:9px; height:9px; border-radius:50%;
+    border:1.6px solid var(--outlier); vertical-align:-1px; margin:0 1px;
+  }
+
   .grid3{display:grid; grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); gap:16px;}
   .scrollx{overflow-x:auto; padding-bottom:4px;}
 
@@ -168,6 +189,14 @@
     <div class="panel">
       <h2>Spatial vector field</h2>
       <p class="desc">Each arrow starts at a star's sensor position and points toward its residual, scaled for visibility. A pattern that grows outward from the centre (longer arrows near the edge, roughly radial direction) is the signature of field curvature; a pattern that doesn't care about position on the sensor at all is not optical.</p>
+      <div class="outlierrow" id="outlierrow">
+        <label for="outliertoggle">
+          <input type="checkbox" id="outliertoggle">
+          Highlight top
+        </label>
+        <input type="number" id="outliercount" min="1" max="50" step="1" value="10" aria-label="Number of outlier vectors to highlight">
+        <span class="hint">outlier vector(s) by residual magnitude &mdash; the stars with the biggest outshoot, ringed and drawn in <span class="hintswatch"></span> green</span>
+      </div>
       <div class="chartwrap"><svg id="vectorfield" viewBox="0 0 900 560"></svg></div>
       <div class="legend" id="vectorlegend"></div>
     </div>
@@ -531,7 +560,7 @@
 3,135.495,-125.501,184.687,457.946,10.051,-5.505,1.066,1
 3,135.497,112.496,176.110,465.548,8.089,-3.785,5.641,1`;
 
-  var state = { rows: [], mode: 'before', source: 'example' };
+  var state = { rows: [], mode: 'before', source: 'example', showOutliers: false, outlierN: 10 };
 
   function parseCSV(text){
     var lines = text.split(/\r?\n/).filter(function(l){ return l.trim().length; });
@@ -715,10 +744,31 @@
     var arrowScale = (Math.min(plotW,plotH) * 0.11) / maxMag;
 
     var pts = sample(rows, 1400);
+
+    // Top-N outlier vectors by residual magnitude (opt-in via the
+    // "Highlight top N" control) -- "the stars with the outshoot": ranked
+    // over every row in the dataset (kept and clipped alike -- a clipped
+    // point is often exactly the kind of outshoot this is meant to surface),
+    // not just the random sample above, so a genuine top outlier is never
+    // missed just because sampling skipped it in a large session. Any
+    // outlier not already in the sample gets folded in so it still renders.
+    var outlierRows = [];
+    if (state.showOutliers && rows.length){
+      outlierRows = rows.slice()
+        .sort(function(a,b){ return Math.hypot(b[f.dxi],b[f.deta]) - Math.hypot(a[f.dxi],a[f.deta]); })
+        .slice(0, Math.min(state.outlierN, rows.length));
+      outlierRows.forEach(function(or){
+        if (pts.indexOf(or) === -1) pts.push(or);
+      });
+    }
+
     var g = svgEl('g', {});
+    var outlierG = svgEl('g', {}); // drawn after `g` so highlighted vectors sit on top of the cloud
     pts.forEach(function(r){
       var mag = Math.hypot(r[f.dxi], r[f.deta]);
       var offScale = mag > maxMag;
+      var outlierRank = outlierRows.indexOf(r);
+      var isOutlier = outlierRank !== -1;
       // Off-scale points are drawn at the capped length (direction
       // preserved) rather than at their true, chart-busting length -- see
       // robustMax's comment for why.
@@ -727,25 +777,33 @@
       var x0 = px(r.u), y0 = py(r.v);
       var x1 = x0 + ux*dispMag*arrowScale, y1 = y0 - uy*dispMag*arrowScale;
       var t = Math.min(1, mag/maxMag);
-      var col = offScale ? cssVar('--warn') : mixColor(cssVar('--surface-2'), cssVar('--xi'), 0.25 + 0.75*t);
-      var op = r.kept ? 1 : 0.35;
-      var tip = 'sub '+r.sub+'  u='+fmt(r.u,0)+' v='+fmt(r.v,0)+'\nξ='+fmt(r[f.dxi],1)+' mas  η='+fmt(r[f.deta],1)+' mas'+(r.kept?'':'  (clipped)')+(offScale?'\noff-scale: true magnitude '+fmt(mag,0)+' mas (capped at '+fmt(maxMag,0)+' for display)':'');
-      var lineAttrs = {x1:x0, y1:y0, x2:x1, y2:y1, stroke:col, 'stroke-width': offScale ? 1.8 : (r.kept ? 1.3 : 1), 'stroke-linecap':'round', opacity:op};
+      var col = isOutlier ? cssVar('--outlier') : (offScale ? cssVar('--warn') : mixColor(cssVar('--surface-2'), cssVar('--xi'), 0.25 + 0.75*t));
+      var op = isOutlier ? 1 : (r.kept ? 1 : 0.35);
+      var tip = 'sub '+r.sub+'  u='+fmt(r.u,0)+' v='+fmt(r.v,0)+'\nξ='+fmt(r[f.dxi],1)+' mas  η='+fmt(r[f.deta],1)+' mas'+(r.kept?'':'  (clipped)')+(offScale?'\noff-scale: true magnitude '+fmt(mag,0)+' mas (capped at '+fmt(maxMag,0)+' for display)':'')+(isOutlier?'\nTOP OUTLIER #'+(outlierRank+1)+' by residual magnitude ('+fmt(mag,0)+' mas)':'');
+      var lineAttrs = {x1:x0, y1:y0, x2:x1, y2:y1, stroke:col, 'stroke-width': isOutlier ? 2.4 : (offScale ? 1.8 : (r.kept ? 1.3 : 1)), 'stroke-linecap':'round', opacity:op};
       if (offScale) lineAttrs['stroke-dasharray'] = '3,2';
       var line = svgEl('line', lineAttrs);
       withTip(line, tip);
-      g.appendChild(line);
+      var targetG = isOutlier ? outlierG : g;
+      targetG.appendChild(line);
       var ang = Math.atan2(y1-y0, x1-x0);
-      var ah = 3.4;
+      var ah = isOutlier ? 5.2 : 3.4;
       var ax1 = x1 - ah*Math.cos(ang-0.4), ay1 = y1 - ah*Math.sin(ang-0.4);
       var ax2 = x1 - ah*Math.cos(ang+0.4), ay2 = y1 - ah*Math.sin(ang+0.4);
       var head = svgEl('polygon', {points:x1+','+y1+' '+ax1+','+ay1+' '+ax2+','+ay2, fill:col, opacity:op});
       withTip(head, tip);
-      g.appendChild(head);
-      if (offScale) withTip(g.appendChild(svgEl('circle', {cx:x1, cy:y1, r:3.2, fill:'none', stroke:cssVar('--warn'), 'stroke-width':1.2, opacity:op})), tip);
+      targetG.appendChild(head);
+      if (offScale) withTip(targetG.appendChild(svgEl('circle', {cx:x1, cy:y1, r:3.2, fill:'none', stroke:cssVar('--warn'), 'stroke-width':1.2, opacity:op})), tip);
+      if (isOutlier){
+        // Ring the star itself, echoing this project's own circle+arrow
+        // proper-motion glyph, so an outlier star reads at a glance rather
+        // than only on hover.
+        withTip(outlierG.appendChild(svgEl('circle', {cx:x0, cy:y0, r:5.5, fill:'none', stroke:col, 'stroke-width':1.6})), tip);
+      }
       g.appendChild(svgEl('circle', {cx:x0, cy:y0, r:1.3, fill:cssVar('--ink-faint'), opacity:op*0.8}));
     });
     svg.appendChild(g);
+    svg.appendChild(outlierG);
 
     textAxis(svg, W/2, H-6, 'pixel u (offset from crpix, RA-like)');
     textAxisRot(svg, 14, H/2, 'pixel v (offset from crpix, Dec-like)');
@@ -778,6 +836,12 @@
       warnItem.style.cssText = 'display:inline-flex;align-items:center;gap:5px;color:'+cssVar('--warn')+';';
       warnItem.innerHTML = '<span style="width:10px;height:2px;background:'+cssVar('--warn')+';display:inline-block;"></span> off-scale point';
       legend.appendChild(warnItem);
+    }
+    if (state.showOutliers && outlierRows.length){
+      var outlierItem = document.createElement('span');
+      outlierItem.style.cssText = 'display:inline-flex;align-items:center;gap:5px;color:'+cssVar('--outlier')+';';
+      outlierItem.innerHTML = '<span style="width:10px;height:10px;border-radius:50%;border:1.6px solid '+cssVar('--outlier')+';display:inline-block;"></span> top '+outlierRows.length+' outlier vector'+(outlierRows.length===1?'':'s')+' by magnitude';
+      legend.appendChild(outlierItem);
     }
   }
 
@@ -1065,6 +1129,35 @@
     state.mode = btn.getAttribute('data-mode');
     this.querySelectorAll('button').forEach(function(b){ b.classList.toggle('active', b===btn); });
     renderAll();
+  });
+
+  var outlierToggle = document.getElementById('outliertoggle');
+  var outlierCount = document.getElementById('outliercount');
+  outlierCount.disabled = !state.showOutliers;
+  outlierToggle.addEventListener('change', function(){
+    state.showOutliers = outlierToggle.checked;
+    outlierCount.disabled = !state.showOutliers;
+    renderVectorField();
+  });
+  function commitOutlierN(){
+    var n = parseInt(outlierCount.value, 10);
+    if (!isFinite(n)) n = state.outlierN;
+    n = Math.max(1, Math.min(50, n));
+    outlierCount.value = n;
+    state.outlierN = n;
+    if (state.showOutliers) renderVectorField();
+  }
+  outlierCount.addEventListener('change', commitOutlierN);
+  outlierCount.addEventListener('input', function(){
+    // Live-update while typing/using the spinner for any already-in-range
+    // value, without fighting the user by clamping mid-keystroke -- final
+    // clamping (e.g. an out-of-range typed value, or leaving it blank)
+    // happens in commitOutlierN() on change/blur instead.
+    var n = parseInt(outlierCount.value, 10);
+    if (isFinite(n) && n >= 1 && n <= 50){
+      state.outlierN = n;
+      if (state.showOutliers) renderVectorField();
+    }
   });
 
   function loadRows(rows, sourceLabel){
