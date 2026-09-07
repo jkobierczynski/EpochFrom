@@ -99,12 +99,13 @@ your own frames: point it at a solved image (its `.wcs` sidecar, same
 `<image>.wcs`-next-to-it default as the Date tab) and a Gaia catalog CSV for
 that field, and it draws the image (auto-stretched -- percentile clip +
 asinh, `src/core/ImageStretch.{h,cpp}`) with the fastest-moving Gaia stars
-actually inside the frame circled in yellow, a green line showing where each
-is heading and a red line showing where it came from. "Top N" is a spin box;
-the display epoch defaults to the image's own `DATE-OBS` but can be
-overridden to preview where the same stars will be decades from now. Line
-length is proportional to each star's total proper motion, scaled so the
-*average* line length across the selected stars comes out to the image
+actually inside the frame circled in yellow, a green line -- arrowhead at the
+tip -- showing where each is heading and a red line showing where it came
+from, both starting at the circle's own edge rather than its center. "Top N"
+is a spin box; the display epoch defaults to the image's own `DATE-OBS` but
+can be overridden to preview where the same stars will be decades from now.
+Line length is proportional to each star's total proper motion, scaled so
+the *average* line length across the selected stars comes out to the image
 diagonal / 30 (`src/core/ProperMotionOverlay.{h,cpp}` does the ranking,
 frame-bounds filtering, and direction/length math; `src/gui/StarfieldCanvas`
 is the pan/zoom viewer -- scroll to zoom, drag to pan, hover a star for its
@@ -112,6 +113,16 @@ Gaia source ID, G mag, and proper motion). Candidates outside the actual
 image footprint are excluded before ranking, since a Gaia query's search
 cone (`gaia_field_query.py --radius`) is normally wider than the sensor's
 own field of view.
+
+The **Fullscreen** button (or F11, Escape to leave) hides the tab's options
+panel and puts the whole window into OS fullscreen, so the starfield itself
+gets the screen -- inside `EpochFrom-gui` it also hides the Project bar, tab
+strip, menu, and status bar for the duration. The same tab is also its own
+**standalone app**, `EpochFrom-starfield`: just the Project bar and this
+viewer, nothing else, for anyone who wants the proper-motion view pinned
+open without the rest of the pipeline's tabs. It shares `EpochFrom-gui`'s
+`QSettings` (same base directory, filter, Gaia catalog path, ...), so
+whichever app you set the Project bar up in first, the other already has it.
 
 A **Project** bar sits above the tabs holding a base directory and a
 filter (Ha/OIII/SII/L/R/G/B/... or blank), persisted between runs. Every
@@ -205,9 +216,11 @@ cmake --build build
 ctest --test-dir build --output-on-failure
 ```
 
-This builds both `build/src/cli/EpochFrom` (the command-line tool used
-throughout the rest of this README) and `build/src/gui/EpochFrom-gui` (the
-desktop app -- just run it, no arguments needed).
+This builds `build/src/cli/EpochFrom` (the command-line tool used throughout
+the rest of this README), `build/src/gui/EpochFrom-gui` (the desktop app),
+and `build/src/gui/EpochFrom-starfield` (the standalone proper-motion
+viewer, see the Starfield tab section above) -- just run any of them, no
+arguments needed.
 
 `EpochFrom selftest --gaia tests/data/gaia_northamerica.csv` runs the same
 synthetic epoch-recovery check as the regression test, but as a one-off you
