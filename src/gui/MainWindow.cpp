@@ -4,6 +4,7 @@
 #include "GaiaTab.h"
 #include "ProjectBar.h"
 #include "SolveTab.h"
+#include "StarfieldTab.h"
 
 #include <QAction>
 #include <QCoreApplication>
@@ -36,6 +37,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
     tabs->addTab(new GaiaTab(projectBar), tr("Gaia"));
     tabs->addTab(new CalibrateTab(projectBar), tr("Calibrate"));
     tabs->addTab(new DateTab(projectBar), tr("Date"));
+    tabs->addTab(new StarfieldTab(projectBar), tr("Starfield"));
 
     auto *central = new QWidget;
     auto *centralLayout = new QVBoxLayout(central);

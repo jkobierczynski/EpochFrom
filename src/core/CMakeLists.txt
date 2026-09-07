@@ -23,6 +23,10 @@ add_library(epoch_from_core STATIC
     Wcs.cpp
     ImageDater.h
     ImageDater.cpp
+    ProperMotionOverlay.h
+    ProperMotionOverlay.cpp
+    ImageStretch.h
+    ImageStretch.cpp
     ReportFormatting.h
     ReportFormatting.cpp
 )

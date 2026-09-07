@@ -65,3 +65,14 @@ target_link_libraries(image_dater_test PRIVATE epoch_from_core Qt6::Core)
 # plus that the profile correction measurably reduces the residual over not
 # applying it to the same distorted catalog.
 add_test(NAME image_dater_test COMMAND image_dater_test)
+
+add_executable(proper_motion_overlay_test proper_motion_overlay_test.cpp)
+target_link_libraries(proper_motion_overlay_test PRIVATE epoch_from_core Qt6::Core)
+
+# Unit test for ProperMotionOverlay::compute() (the Starfield tab's
+# top-N-by-proper-motion / frame-bounds-filter / direction / length-scaling
+# math) plus a light spot-check of ImageStretch::autoStretch(), against a
+# synthetic .wcs fixture and hand-built Gaia stars whose expected pixel-
+# space motion direction is derived independently from the WCS's own CD
+# matrix convention.
+add_test(NAME proper_motion_overlay_test COMMAND proper_motion_overlay_test)

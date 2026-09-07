@@ -73,7 +73,7 @@ profile measurably reduces the residual over not applying it to the same
 distorted data. See `EpochFrom date --help`.
 
 A first desktop GUI is here too: `EpochFrom-gui` is a Qt Widgets app with a
-Gaia/Solve/Calibrate/Date tab apiece, driving the same core library
+Gaia/Solve/Calibrate/Date/Starfield tab apiece, driving the same core library
 (`epoch_from_core`) the CLI does directly rather than shelling out to it
 (the Gaia tab is the one exception -- see below). Each tab exposes that
 command's options as fields instead of flags, runs the actual work (a
@@ -93,6 +93,25 @@ The Gaia tab wraps `scripts/gaia_field_query.py` (see "Gaia data" below) as
 a subprocess via `QProcess`, streaming its progress into the same kind of
 log view the other tabs use, so downloading a field's reference catalog no
 longer requires a terminal.
+
+The **Starfield tab** shows what proper motion actually looks like in one of
+your own frames: point it at a solved image (its `.wcs` sidecar, same
+`<image>.wcs`-next-to-it default as the Date tab) and a Gaia catalog CSV for
+that field, and it draws the image (auto-stretched -- percentile clip +
+asinh, `src/core/ImageStretch.{h,cpp}`) with the fastest-moving Gaia stars
+actually inside the frame circled in yellow, a green line showing where each
+is heading and a red line showing where it came from. "Top N" is a spin box;
+the display epoch defaults to the image's own `DATE-OBS` but can be
+overridden to preview where the same stars will be decades from now. Line
+length is proportional to each star's total proper motion, scaled so the
+*average* line length across the selected stars comes out to the image
+diagonal / 30 (`src/core/ProperMotionOverlay.{h,cpp}` does the ranking,
+frame-bounds filtering, and direction/length math; `src/gui/StarfieldCanvas`
+is the pan/zoom viewer -- scroll to zoom, drag to pan, hover a star for its
+Gaia source ID, G mag, and proper motion). Candidates outside the actual
+image footprint are excluded before ranking, since a Gaia query's search
+cone (`gaia_field_query.py --radius`) is normally wider than the sensor's
+own field of view.
 
 A **Project** bar sits above the tabs holding a base directory and a
 filter (Ha/OIII/SII/L/R/G/B/... or blank), persisted between runs. Every

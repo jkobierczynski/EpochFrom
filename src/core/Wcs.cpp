@@ -112,4 +112,28 @@ bool Wcs::pixToWorld(double pixX, double pixY, double *outRaDeg, double *outDecD
     return true;
 }
 
+bool Wcs::worldToPix(double raDeg, double decDeg, double *outPixX, double *outPixY) const
+{
+    if (!m_valid || !m_wcs)
+        return false;
+
+    auto *holder = static_cast<Holder *>(m_wcs);
+    wcsprm *wcs = holder->wcs;
+
+    double world[2] = {0.0, 0.0};
+    world[wcs->lng] = raDeg;
+    world[wcs->lat] = decDeg;
+    double phi = 0.0, theta = 0.0;
+    double imgcrd[2] = {0.0, 0.0};
+    double pixcrd[2] = {0.0, 0.0};
+    int stat = 0;
+    const int status = wcss2p(wcs, 1, 2, world, &phi, &theta, imgcrd, pixcrd, &stat);
+    if (status != 0)
+        return false;
+
+    *outPixX = pixcrd[0];
+    *outPixY = pixcrd[1];
+    return true;
+}
+
 } // namespace epochfrom

@@ -18,6 +18,12 @@ add_executable(epoch_from_gui
     DateWorker.cpp
     GaiaTab.h
     GaiaTab.cpp
+    StarfieldTab.h
+    StarfieldTab.cpp
+    StarfieldWorker.h
+    StarfieldWorker.cpp
+    StarfieldCanvas.h
+    StarfieldCanvas.cpp
     ProjectBar.h
     ProjectBar.cpp
     ProjectPaths.h

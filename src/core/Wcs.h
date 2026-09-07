@@ -31,6 +31,13 @@ public:
     // pixX/pixY are FITS 1-indexed pixel coordinates.
     bool pixToWorld(double pixX, double pixY, double *outRaDeg, double *outDecDeg) const;
 
+    // Inverse of pixToWorld -- sky (RA/Dec, degrees) to FITS 1-indexed pixel
+    // coordinates, honoring the same TAN/TAN-SIP projection (SIP terms
+    // included, iteratively inverted by wcslib itself). Used to place a
+    // Gaia star's propagated sky position onto this frame's pixel grid,
+    // e.g. for the proper-motion overlay (see ProperMotionOverlay.h).
+    bool worldToPix(double raDeg, double decDeg, double *outPixX, double *outPixY) const;
+
 private:
     void *m_wcs = nullptr; // opaque Holder{wcsprm*, nwcs}, see LinearWcs.cpp for the same pattern
     bool m_valid = false;
