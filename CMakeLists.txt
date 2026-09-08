@@ -57,16 +57,55 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 set(EPOCHFROM_WCSLIB_FOUND FALSE)
 set(EPOCHFROM_CFITSIO_FOUND FALSE)
 
+# Some MSYS2 packages' .pc files (cfitsio's, confirmed by CI; possibly
+# others) hardcode a literal POSIX-style "prefix=/mingw64" rather than a
+# resolved absolute path. That's only meaningful inside the MSYS2 runtime's
+# own path translation -- cmake.exe is a native (non-MSYS) binary, so it
+# takes "/mingw64/include" literally, and either fails outright at generate
+# time (a non-existent INTERFACE_INCLUDE_DIRECTORIES entry) or would
+# silently produce a "-L/mingw64/lib" nothing can find at link time.
+# Rewrite any such path pkg-config hands back to the real MinGW root,
+# derived from where the active compiler actually lives (always correct,
+# regardless of where a given checkout happens to sit on disk).
+function(_epochfrom_fix_mingw_pkgconfig_paths target)
+    if(NOT MINGW OR NOT TARGET ${target})
+        return()
+    endif()
+    get_filename_component(_epochfrom_mingw_bindir "${CMAKE_CXX_COMPILER}" DIRECTORY)
+    get_filename_component(_epochfrom_mingw_root "${_epochfrom_mingw_bindir}" DIRECTORY)
+    foreach(_epochfrom_prop
+            INTERFACE_INCLUDE_DIRECTORIES
+            INTERFACE_LINK_DIRECTORIES
+            INTERFACE_LINK_LIBRARIES
+            INTERFACE_LINK_OPTIONS)
+        get_target_property(_epochfrom_value ${target} ${_epochfrom_prop})
+        if(_epochfrom_value)
+            set(_epochfrom_fixed "")
+            foreach(_epochfrom_item ${_epochfrom_value})
+                if(_epochfrom_item MATCHES "^-L/mingw(32|64)(/.*)?$")
+                    string(REGEX REPLACE "^-L/mingw(32|64)" "-L${_epochfrom_mingw_root}" _epochfrom_item "${_epochfrom_item}")
+                elseif(_epochfrom_item MATCHES "^/mingw(32|64)(/.*)?$")
+                    string(REGEX REPLACE "^/mingw(32|64)" "${_epochfrom_mingw_root}" _epochfrom_item "${_epochfrom_item}")
+                endif()
+                list(APPEND _epochfrom_fixed "${_epochfrom_item}")
+            endforeach()
+            set_target_properties(${target} PROPERTIES ${_epochfrom_prop} "${_epochfrom_fixed}")
+        endif()
+    endforeach()
+endfunction()
+
 find_package(PkgConfig)
 if(PkgConfig_FOUND)
     pkg_check_modules(WCSLIB IMPORTED_TARGET wcslib)
     if(WCSLIB_FOUND)
+        _epochfrom_fix_mingw_pkgconfig_paths(PkgConfig::WCSLIB)
         add_library(EpochFrom::WCSLIB ALIAS PkgConfig::WCSLIB)
         set(EPOCHFROM_WCSLIB_FOUND TRUE)
     endif()
 
     pkg_check_modules(CFITSIO IMPORTED_TARGET cfitsio)
     if(CFITSIO_FOUND)
+        _epochfrom_fix_mingw_pkgconfig_paths(PkgConfig::CFITSIO)
         add_library(EpochFrom::CFITSIO ALIAS PkgConfig::CFITSIO)
         set(EPOCHFROM_CFITSIO_FOUND TRUE)
     endif()
@@ -97,8 +136,7 @@ if(NOT EPOCHFROM_WCSLIB_FOUND OR NOT EPOCHFROM_CFITSIO_FOUND)
     message(FATAL_ERROR
         "Could not locate wcslib and/or cfitsio.\n"
         "  Linux: install the -dev packages (see README's Building section).\n"
-        "  Windows + MSYS2/MinGW: pacman -S mingw-w64-x86_64-cfitsio (and build\n"
-        "    wcslib from source into the same MSYS2 prefix -- it isn't packaged there).\n"
+        "  Windows + MSYS2/MinGW: pacman -S mingw-w64-x86_64-cfitsio mingw-w64-x86_64-wcslib\n"
         "  Windows + MSVC/vcpkg: vcpkg install cfitsio; wcslib has no vcpkg port,\n"
         "    build it manually and add its install prefix to CMAKE_PREFIX_PATH.\n"
         "  See docs/windows-port.md for the current state of all of this.")
