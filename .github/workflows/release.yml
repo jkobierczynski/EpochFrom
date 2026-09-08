@@ -1,0 +1,244 @@
+name: Release
+
+# Builds EpochFrom for Linux and Windows and, for an actual version tag,
+# publishes both as a GitHub Release. `workflow_dispatch` lets you run the
+# whole build-and-package pipeline on demand (e.g. from a branch) without
+# cutting a real tag -- useful for shaking out problems in this workflow
+# itself, since the Windows leg in particular reproduces a from-source
+# wcslib build that took several rounds of real, live debugging to get
+# right the first time (see docs/windows-port.md) and is worth treating
+# with the same "confirm from real evidence, don't assume" caution here.
+on:
+  push:
+    tags:
+      - "v*.*.*"
+  workflow_dispatch: {}
+
+env:
+  # wcslib has no Windows package anywhere (confirmed: neither MSYS2 nor
+  # vcpkg nor conda-forge carry it -- see docs/windows-port.md's
+  # "Toolchain options" section), so the Windows job builds it from source.
+  # Kept as one place to bump if this project ever moves to a newer wcslib.
+  WCSLIB_VERSION: "8.9"
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Exact package list from README.md's own "Building" section --
+      # nothing invented here, this is what the project already documents
+      # as its Linux dependencies.
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            qt6-base-dev libeigen3-dev wcslib-dev libcfitsio-dev cmake g++
+
+      - name: Configure
+        run: cmake -B build -S . -DCMAKE_BUILD_TYPE=RelWithDebInfo
+
+      - name: Build
+        run: cmake --build build --parallel
+
+      - name: Test
+        run: ctest --test-dir build --output-on-failure
+
+      # Installs into a "usr/" tree (bin/, share/applications/,
+      # share/icons/hicolor/...) matching exactly the layout the top-level
+      # CMakeLists.txt/src/gui/CMakeLists.txt already wire up via
+      # GNUInstallDirs and README's own Desktop-integration section (e.g.
+      # `-DCMAKE_INSTALL_PREFIX="$HOME/.local"`) -- a user extracting this
+      # tarball can drop "usr/*" straight into ~/.local or /usr/local for
+      # full desktop/taskbar icon integration, or just run usr/bin/EpochFrom*
+      # directly without installing anywhere.
+      - name: Stage install tree
+        run: cmake --install build --prefix "${{ github.workspace }}/pkgroot/usr"
+
+      - name: Package
+        working-directory: ${{ github.workspace }}/pkgroot
+        run: tar -czf "${{ github.workspace }}/epochfrom-linux-x86_64.tar.gz" usr
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: epochfrom-linux-x86_64
+          path: epochfrom-linux-x86_64.tar.gz
+          if-no-files-found: error
+
+  build-windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: EpochFrom
+
+      # MINGW64 specifically -- not the plain MSYS shell -- is what selects
+      # the /mingw64 prefix and its gcc; both wcslib's own build and
+      # EpochFrom's CMake configure below need to run from this same
+      # environment (confirmed: the plain MSYS shell's "MinGW Makefiles"
+      # CMake generator fails its own compiler self-test there -- see
+      # docs/windows-port.md).
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: true
+          install: >-
+            base-devel
+            curl
+            tar
+            bzip2
+            mingw-w64-x86_64-toolchain
+            mingw-w64-x86_64-cmake
+            mingw-w64-x86_64-pkgconf
+            mingw-w64-x86_64-qt6-base
+            mingw-w64-x86_64-eigen3
+            mingw-w64-x86_64-cfitsio
+
+      # wcslib has no Windows package anywhere it was checked (MSYS2,
+      # vcpkg, conda-forge -- all confirmed dead ends, see
+      # docs/windows-port.md's "Toolchain options" section), so it's built
+      # from the official upstream source tarball, with the same fixes
+      # confirmed necessary on a real MSYS2/MinGW build:
+      #   1. autoconf's TLS-specifier probe misdetects MSVC's
+      #      __declspec(thread) as usable under MinGW's gcc (which accepts
+      #      it for source compatibility even though it isn't MSVC), and
+      #      that string reaches the shell unquoted -- '(' / ')' are shell
+      #      metacharacters, so every subsequent compile fails with a
+      #      "syntax error near unexpected token '('". Forcing tls=__thread
+      #      immediately before it's used sidesteps the whole broken probe
+      #      chain rather than patching the probe itself, so this doesn't
+      #      depend on matching autoconf's generated boilerplate exactly.
+      #   2. NO_OLDNAMES (in CPPFLAGS) suppresses MinGW-w64's own
+      #      MSVC-compatibility `wcsset` declaration so it doesn't collide
+      #      with wcslib's real one of the same name -- safe here, unlike
+      #      in EpochFrom's own source below, because wcslib's build
+      #      doesn't also need the pid_t/etc. typedefs NO_OLDNAMES gates.
+      #   3. --disable-fortran/--without-pgplot/--disable-utils: skip
+      #      optional pieces EpochFrom doesn't use, sidestepping their own
+      #      separate build issues (utils/'s fitshdr.c needs the very
+      #      POSIX-alias names NO_OLDNAMES just suppressed).
+      #   4. --disable-shared: MinGW's `$(LN_S)` resolves to a plain `cp`,
+      #      not `ln -s`, in this install's own build (confirmed a general
+      #      MSYS2/MinGW behaviour, not project-specific) -- avoids the
+      #      broken shared-library SONAME symlink chain entirely by not
+      #      building one; a static libwcs.a is all EpochFrom needs anyway,
+      #      and means no wcslib DLL to bundle at runtime later.
+      #   5/6. Two GNUmakefile `$(LN_S) $(notdir ...)` alias steps have the
+      #      same cp-not-ln-s problem a second and third time (the
+      #      include-dir and doc-dir bare-name aliases); patched to pass the
+      #      full path instead of the bare name, with -f so a second
+      #      `make install` (e.g. a re-run of this job) doesn't fail on the
+      #      first install's now-read-only files.
+      # See docs/windows-port.md's MSYS2 + MinGW section for the full,
+      # blow-by-blow story of how each of these was actually found.
+      - name: Fetch wcslib source
+        run: |
+          curl -fsSL -o wcslib.tar.bz2 \
+            "https://www.atnf.csiro.au/computing/software/wcs/wcslib-releases/wcslib-${WCSLIB_VERSION}.tar.bz2"
+          tar -xjf wcslib.tar.bz2
+        working-directory: ${{ github.workspace }}
+
+      - name: Patch wcslib for MinGW
+        working-directory: ${{ github.workspace }}/wcslib-${{ env.WCSLIB_VERSION }}
+        run: |
+          # Fix 1: force the correct TLS specifier, bypassing the broken
+          # __declspec(thread) probe entirely rather than trying to match
+          # and delete autoconf's generated probe text.
+          sed -i 's/CPPFLAGS="\$CPPFLAGS -DWCSLIB_TLS=\$tls"/tls="__thread"\nCPPFLAGS="$CPPFLAGS -DWCSLIB_TLS=$tls"/' configure
+          grep -q 'tls="__thread"' configure
+
+          # Fixes 5/6: GNUmakefile alias steps, full path instead of
+          # $(notdir ...), with -f for idempotency across repeated installs.
+          sed -i 's|$(LN_S) $(notdir $(INCDIR)) $(INCLINK)|$(LN_S) -f $(INCDIR) $(INCLINK)|' C/GNUmakefile
+          sed -i 's|$(LN_S) $(notdir $(DOCDIR)) $(DOCLINK)|$(LN_S) -f $(DOCDIR) $(DOCLINK)|' GNUmakefile
+
+          # wcs.h's own wcsset()/MinGW collision -- see
+          # scripts/ci/patch_wcslib_wcs_h.py's own docstring for the full
+          # explanation of why this needs patching at all and why this
+          # specific fix (rather than NO_OLDNAMES) is the one that works.
+          python3 "${{ github.workspace }}/EpochFrom/scripts/ci/patch_wcslib_wcs_h.py" C/wcs.h
+
+      - name: Build and install wcslib
+        working-directory: ${{ github.workspace }}/wcslib-${{ env.WCSLIB_VERSION }}
+        run: |
+          CPPFLAGS="-DNO_OLDNAMES" ./configure --prefix=/mingw64 --disable-fortran \
+              --without-pgplot --disable-utils --disable-shared
+          make -j
+          make install
+
+      - name: Configure EpochFrom
+        working-directory: ${{ github.workspace }}/EpochFrom
+        run: cmake -B build-mingw -S . -G "MSYS Makefiles" -DCMAKE_BUILD_TYPE=RelWithDebInfo
+
+      - name: Build EpochFrom
+        working-directory: ${{ github.workspace }}/EpochFrom
+        run: cmake --build build-mingw --parallel
+
+      - name: Test EpochFrom
+        working-directory: ${{ github.workspace }}/EpochFrom
+        run: ctest --test-dir build-mingw --output-on-failure
+
+      - name: Stage install tree
+        working-directory: ${{ github.workspace }}/EpochFrom
+        run: cmake --install build-mingw --prefix "${{ github.workspace }}/dist"
+
+      # windeployqt pulls in Qt6's own DLLs (--compiler-runtime additionally
+      # grabs libgcc_s_seh-1.dll/libstdc++-6.dll/libwinpthread-1.dll, the
+      # MinGW runtime every executable here needs). Not itself confirmed
+      # working end-to-end on a real machine as of this workflow's first
+      # version -- docs/windows-port.md flags windeployqt as untried even
+      # in the interactive Windows-port work this workflow is based on, so
+      # treat this step as the first real test of it, not an assumed-solid
+      # step, if the Windows job's artifact doesn't run on a clean machine.
+      # cfitsio's own DLL isn't a Qt dependency, so windeployqt won't find
+      # it -- copied explicitly instead. wcslib itself needs no such copy:
+      # --disable-shared above built it as a static library.
+      - name: Bundle Qt/runtime/cfitsio DLLs
+        working-directory: ${{ github.workspace }}/dist/bin
+        run: |
+          windeployqt.exe --release --compiler-runtime EpochFrom.exe
+          windeployqt.exe --release --compiler-runtime EpochFrom-gui.exe
+          windeployqt.exe --release --compiler-runtime EpochFrom-starfield.exe
+          cp /mingw64/bin/libcfitsio*.dll .
+
+      # A plain PowerShell step, not MSYS2 (overriding the job's default
+      # shell): Compress-Archive is guaranteed present on the runner
+      # without depending on 7z being reachable from the MSYS2 shell's own
+      # PATH, which isn't a given. No share/ directory to worry about
+      # excluding here -- CMakeLists.txt only installs desktop-entry/icon
+      # files under UNIX AND NOT APPLE, so a Windows install tree is just
+      # bin/ to begin with.
+      - name: Package
+        shell: pwsh
+        run: |
+          Compress-Archive -Path "${{ github.workspace }}\dist\bin\*" `
+            -DestinationPath "${{ github.workspace }}\epochfrom-windows-x86_64.zip"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: epochfrom-windows-x86_64
+          path: epochfrom-windows-x86_64.zip
+          if-no-files-found: error
+
+  release:
+    needs: [build-linux, build-windows]
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            artifacts/epochfrom-linux-x86_64.tar.gz
+            artifacts/epochfrom-windows-x86_64.zip
+          generate_release_notes: true
