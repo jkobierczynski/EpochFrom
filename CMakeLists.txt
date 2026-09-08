@@ -24,6 +24,21 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
     set(CMAKE_BUILD_TYPE RelWithDebInfo CACHE STRING "" FORCE)
 endif()
 
+# Real-world confirmation (a built EpochFrom-gui.exe run standalone on
+# Windows): MinGW links against its own runtime as shared DLLs by default
+# (libgcc_s_seh-1.dll, libstdc++-6.dll, libwinpthread-1.dll) -- windeployqt
+# only knows about Qt's own dependencies, not the toolchain's, so it never
+# copies these, and the .exe fails to start ("libgcc_s_seh-1.dll was not
+# found") anywhere they aren't already on PATH (i.e. everywhere outside an
+# MSYS2 shell). Statically linking them in is the standard fix for exactly
+# this MinGW+Qt deployment gap -- applies to every target below, Qt's own
+# DLLs (brought in via windeployqt) and wcslib/cfitsio's are unaffected,
+# since those are still linked as the shared libraries their find_package()/
+# pkg-config imported targets specify.
+if(MINGW)
+    add_link_options(-static-libgcc -static-libstdc++ -static -lwinpthread)
+endif()
+
 find_package(Qt6 REQUIRED COMPONENTS Core)
 
 # No minimum version pinned here on purpose: Eigen upstream jumped straight
