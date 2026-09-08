@@ -1,0 +1,486 @@
+
+
+Loaded 636 usable stars from C:/Users/PC/Pictures/astro/2017-04-19 M51 LRGB/gaia.csv
+
+Using equipment profile: C:/Users/PC/Pictures/astro/2017-04-19 M51 LRGB/profile.json (order 3, held-out RMS 268.6 mas)
+
+m51_Light_blue_240_secs_001.fits: estimated date 2018-11-19  (epoch 2018.8854 +/- 3.1675 yr, RMS 873.9 mas)
+m51_Light_blue_240_secs_002.fits: estimated date 2017-02-09  (epoch 2017.1110 +/- 3.0871 yr, RMS 864.7 mas)
+m51_Light_blue_240_secs_003.fits: estimated date 2019-10-28  (epoch 2019.8224 +/- 3.3379 yr, RMS 857.9 mas)
+m51_Light_blue_240_secs_004.fits: estimated date 2016-11-24  (epoch 2016.8995 +/- 4.1414 yr, RMS 869.3 mas)
+m51_Light_blue_240_secs_005.fits: estimated date 2022-06-02  (epoch 2022.4179 +/- 3.2753 yr, RMS 814.9 mas)
+m51_Light_blue_240_secs_006.fits: estimated date 2018-04-26  (epoch 2018.3176 +/- 2.7897 yr, RMS 872.4 mas)
+m51_Light_blue_240_secs_007.fits: estimated date 2018-10-20  (epoch 2018.8025 +/- 3.2288 yr, RMS 851.8 mas)
+m51_Light_blue_240_secs_008.fits: estimated date 2021-03-20  (epoch 2021.2176 +/- 3.0438 yr, RMS 835.9 mas)
+m51_Light_blue_240_secs_009.fits: estimated date 2020-09-18  (epoch 2020.7158 +/- 3.4298 yr, RMS 870.5 mas)
+m51_Light_blue_240_secs_010.fits: estimated date 2015-06-29  (epoch 2015.4930 +/- 3.7119 yr, RMS 892.7 mas)
+m51_Light_clear_240_secs_001.fits: estimated date 2018-08-08  (epoch 2018.6020 +/- 2.8598 yr, RMS 823.8 mas)
+m51_Light_clear_240_secs_002.fits: estimated date 2019-01-23  (epoch 2019.0617 +/- 2.7128 yr, RMS 812.5 mas)
+m51_Light_clear_240_secs_003.fits: estimated date 2018-10-22  (epoch 2018.8064 +/- 2.5012 yr, RMS 831.2 mas)
+m51_Light_clear_240_secs_004.fits: estimated date 2017-01-14  (epoch 2017.0401 +/- 2.7398 yr, RMS 853.1 mas)
+m51_Light_clear_240_secs_005.fits: estimated date 2018-04-26  (epoch 2018.3180 +/- 2.8785 yr, RMS 861.9 mas)
+m51_Light_clear_240_secs_006.fits: estimated date 2019-01-24  (epoch 2019.0662 +/- 3.1612 yr, RMS 873.4 mas)
+m51_Light_clear_240_secs_007.fits: estimated date 2016-12-08  (epoch 2016.9370 +/- 3.3173 yr, RMS 805.5 mas)
+m51_Light_clear_240_secs_008.fits: estimated date 2015-04-07  (epoch 2015.2642 +/- 4.5134 yr, RMS 829.1 mas)
+m51_Light_clear_240_secs_009.fits: estimated date 2020-03-06  (epoch 2020.1793 +/- 3.2415 yr, RMS 832.6 mas)
+m51_Light_clear_240_secs_010.fits: estimated date 2016-12-21  (epoch 2016.9733 +/- 4.0082 yr, RMS 844.2 mas)
+m51_Light_clear_240_secs_011.fits: estimated date 2018-01-16  (epoch 2018.0440 +/- 4.4015 yr, RMS 1026.5 mas)
+m51_Light_clear_240_secs_012.fits: estimated date 2016-04-14  (epoch 2016.2865 +/- 5.3486 yr, RMS 1078.3 mas)
+m51_Light_clear_240_secs_013.fits: estimated date 2018-06-01  (epoch 2018.4168 +/- 4.4843 yr, RMS 972.1 mas)
+m51_Light_clear_240_secs_014.fits: estimated date 2019-10-30  (epoch 2019.8296 +/- 5.0140 yr, RMS 988.7 mas)
+m51_Light_clear_240_secs_015.fits: estimated date 2018-07-06  (epoch 2018.5118 +/- 2.7528 yr, RMS 865.7 mas)
+m51_Light_clear_240_secs_016.fits: estimated date 2016-05-06  (epoch 2016.3466 +/- 3.5137 yr, RMS 876.9 mas)
+m51_Light_clear_240_secs_017.fits: estimated date 2017-12-24  (epoch 2017.9803 +/- 4.2894 yr, RMS 905.5 mas)
+m51_Light_green_240_secs_001.fits: estimated date 2018-03-29  (epoch 2018.2413 +/- 4.4618 yr, RMS 892.1 mas)
+m51_Light_green_240_secs_002.fits: estimated date 2019-09-08  (epoch 2019.6856 +/- 3.1302 yr, RMS 893.9 mas)
+m51_Light_green_240_secs_003.fits: estimated date 2018-06-14  (epoch 2018.4518 +/- 3.6973 yr, RMS 906.1 mas)
+m51_Light_green_240_secs_004.fits: estimated date 2017-07-21  (epoch 2017.5539 +/- 3.1041 yr, RMS 848.1 mas)
+m51_Light_green_240_secs_005.fits: estimated date 2018-02-04  (epoch 2018.0952 +/- 3.2483 yr, RMS 853.6 mas)
+m51_Light_green_240_secs_006.fits: estimated date 2019-08-05  (epoch 2019.5939 +/- 3.1993 yr, RMS 812.3 mas)
+m51_Light_green_240_secs_007.fits: estimated date 2016-06-03  (epoch 2016.4221 +/- 3.8439 yr, RMS 858.3 mas)
+m51_Light_green_240_secs_008.fits: estimated date 2014-02-19  (epoch 2014.1369 +/- 4.4131 yr, RMS 835.6 mas)
+m51_Light_green_240_secs_009.fits: estimated date 2018-05-21  (epoch 2018.3856 +/- 4.3099 yr, RMS 868.1 mas)
+m51_Light_green_240_secs_010.fits: estimated date 2020-04-09  (epoch 2020.2735 +/- 4.7178 yr, RMS 874.9 mas)
+m51_Light_red_240_secs_001.fits: estimated date 2018-06-28  (epoch 2018.4899 +/- 3.7206 yr, RMS 916.6 mas)
+m51_Light_red_240_secs_002.fits: estimated date 2018-12-13  (epoch 2018.9502 +/- 2.9184 yr, RMS 883.7 mas)
+m51_Light_red_240_secs_003.fits: estimated date 2017-03-29  (epoch 2017.2415 +/- 2.8787 yr, RMS 869.9 mas)
+m51_Light_red_240_secs_004.fits: estimated date 2018-05-05  (epoch 2018.3417 +/- 3.6858 yr, RMS 914.5 mas)
+m51_Light_red_240_secs_005.fits: estimated date 2019-03-07  (epoch 2019.1799 +/- 2.8109 yr, RMS 840.6 mas)
+m51_Light_red_240_secs_006.fits: estimated date 2019-10-18  (epoch 2019.7959 +/- 3.6810 yr, RMS 943.4 mas)
+m51_Light_red_240_secs_007.fits: estimated date 2020-07-08  (epoch 2020.5190 +/- 3.2424 yr, RMS 893.0 mas)
+m51_Light_red_240_secs_008.fits: estimated date 2020-08-28  (epoch 2020.6595 +/- 3.0597 yr, RMS 886.5 mas)
+m51_Light_red_240_secs_009.fits: estimated date 2016-05-28  (epoch 2016.4059 +/- 3.7450 yr, RMS 974.9 mas)
+m51_Light_red_240_secs_010.fits: estimated date 2013-07-03  (epoch 2013.5042 +/- 4.2824 yr, RMS 944.7 mas)
+
+47 dated, 0 failed, out of 47 file(s)
+
+Weighted average date (47 images):
+  Date:   2018-06-22
+  Epoch:  2018.4746 +/- 0.4939 yr (180.4 days)
+  
+2017-04-19 M51 LRGB
+
+Loaded 1006 usable stars from C:/Users/PC/Pictures/astro/2017-02-14_M81M82/gaia.csv
+
+Using equipment profile: C:/Users/PC/Pictures/astro/2017-02-14_M81M82/profile.json (order 3, held-out RMS 256.4 mas)
+
+m81m82-green_Light_001.fits: estimated date 2017-06-07  (epoch 2017.4340 +/- 3.4610 yr, RMS 959.4 mas)
+m81m82-green_Light_002.fits: estimated date 2017-10-20  (epoch 2017.8016 +/- 3.3867 yr, RMS 951.1 mas)
+m81m82-green_Light_003.fits: estimated date 2017-02-14  (epoch 2017.1243 +/- 3.4232 yr, RMS 1146.5 mas)
+m81m82-green_Light_004.fits: estimated date 2019-11-11  (epoch 2019.8626 +/- 3.4577 yr, RMS 971.0 mas)
+m81m82-green_Light_005.fits: estimated date 2017-08-15  (epoch 2017.6215 +/- 4.0549 yr, RMS 945.3 mas)
+m81m82-green_Light_006.fits: estimated date 2018-06-28  (epoch 2018.4908 +/- 2.8620 yr, RMS 1005.6 mas)
+m81m82-green_Light_007.fits: estimated date 2018-06-11  (epoch 2018.4432 +/- 5.4438 yr, RMS 951.8 mas)
+m81m82-green_Light_008.fits: estimated date 2017-03-21  (epoch 2017.2207 +/- 3.0637 yr, RMS 1113.9 mas)
+m81m82-green_Light_009.fits: estimated date 2016-04-24  (epoch 2016.3136 +/- 2.8187 yr, RMS 931.0 mas)
+m81m82-green_Light_010.fits: estimated date 2016-06-19  (epoch 2016.4671 +/- 2.6404 yr, RMS 935.5 mas)
+m81m82-red_Light_001.fits: estimated date 2017-01-03  (epoch 2017.0078 +/- 2.6240 yr, RMS 941.4 mas)
+m81m82-red_Light_002.fits: estimated date 2017-11-12  (epoch 2017.8658 +/- 5.1647 yr, RMS 940.0 mas)
+m81m82-red_Light_003.fits: estimated date 2018-07-04  (epoch 2018.5065 +/- 2.9561 yr, RMS 995.2 mas)
+m81m82-red_Light_004.fits: estimated date 2017-09-21  (epoch 2017.7235 +/- 3.8068 yr, RMS 965.0 mas)
+m81m82-red_Light_005.fits: estimated date 2017-02-13  (epoch 2017.1201 +/- 3.7454 yr, RMS 982.7 mas)
+m81m82-red_Light_006.fits: estimated date 2017-02-18  (epoch 2017.1360 +/- 2.9893 yr, RMS 987.4 mas)
+m81m82-red_Light_007.fits: estimated date 2018-08-15  (epoch 2018.6219 +/- 2.7585 yr, RMS 951.3 mas)
+m81m82-red_Light_008.fits: estimated date 2016-10-02  (epoch 2016.7533 +/- 3.6844 yr, RMS 958.0 mas)
+m81m82-red_Light_009.fits: estimated date 2017-05-22  (epoch 2017.3884 +/- 2.9335 yr, RMS 961.1 mas)
+m81m82-red_Light_010.fits: estimated date 2018-04-23  (epoch 2018.3095 +/- 4.3552 yr, RMS 980.0 mas)
+m81m82-red_Light_011.fits: estimated date 2016-05-04  (epoch 2016.3419 +/- 2.5711 yr, RMS 939.7 mas)
+m81m82-red_Light_012.fits: estimated date 2017-07-21  (epoch 2017.5525 +/- 3.3259 yr, RMS 953.5 mas)
+m81m82-red_Light_013.fits: estimated date 2016-11-16  (epoch 2016.8782 +/- 2.5357 yr, RMS 948.4 mas)
+m81m82-red_Light_014.fits: estimated date 2017-08-02  (epoch 2017.5868 +/- 2.9363 yr, RMS 998.6 mas)
+m81m82-red_Light_015.fits: estimated date 2018-02-01  (epoch 2018.0888 +/- 3.4270 yr, RMS 964.2 mas)
+m81m82-red_Light_016.fits: estimated date 2015-06-07  (epoch 2015.4318 +/- 3.1849 yr, RMS 940.4 mas)
+m81m82-red_Light_017.fits: estimated date 2018-06-13  (epoch 2018.4485 +/- 5.3525 yr, RMS 1194.3 mas)
+m81m82-red_Light_018.fits: estimated date 2016-10-14  (epoch 2016.7876 +/- 2.7641 yr, RMS 993.2 mas)
+m81m82-red_Light_019.fits: estimated date 2018-01-27  (epoch 2018.0735 +/- 4.3246 yr, RMS 1023.9 mas)
+m81m82-red_Light_020.fits: estimated date 2016-10-19  (epoch 2016.8011 +/- 2.7355 yr, RMS 972.6 mas)
+m81m82-red_Light_021.fits: estimated date 2016-12-21  (epoch 2016.9736 +/- 2.6990 yr, RMS 934.0 mas)
+m81m82-test_Light_001.fits: estimated date 2017-04-19  (epoch 2017.2983 +/- 4.5437 yr, RMS 915.8 mas)
+m81m82-test_Light_002.fits: estimated date 2079-10-10  (epoch 2079.7737 +/- 260.6647 yr, RMS 1448.6 mas)
+m81m82-test_Light_003.fits: estimated date 1998-01-25  (epoch 1998.0675 +/- 51.6812 yr, RMS 1141.3 mas)
+m81m82-test_Light_004.fits: estimated date 2016-07-24  (epoch 2016.5638 +/- 4.2824 yr, RMS 957.1 mas)
+m81m82-test_Light_005.fits: estimated date 2011-09-18  (epoch 2011.7151 +/- 6.2396 yr, RMS 959.6 mas)
+m81m82-test_Light_006.fits: estimated date 2016-04-08  (epoch 2016.2696 +/- 6.7728 yr, RMS 772.0 mas)
+m81m82_Light_blue_000.fits: estimated date 2017-08-02  (epoch 2017.5879 +/- 2.8230 yr, RMS 976.7 mas)
+m81m82_Light_blue_001.fits: estimated date 2018-06-03  (epoch 2018.4226 +/- 2.8444 yr, RMS 961.9 mas)
+m81m82_Light_blue_002.fits: estimated date 2017-07-05  (epoch 2017.5104 +/- 3.6620 yr, RMS 932.9 mas)
+m81m82_Light_blue_003.fits: estimated date 2016-09-23  (epoch 2016.7305 +/- 2.8962 yr, RMS 1005.7 mas)
+m81m82_Light_blue_004.fits: estimated date 2018-05-21  (epoch 2018.3860 +/- 4.9694 yr, RMS 978.5 mas)
+m81m82_Light_blue_005.fits: estimated date 2017-02-19  (epoch 2017.1382 +/- 3.4689 yr, RMS 941.9 mas)
+m81m82_Light_blue_006.fits: estimated date 2017-11-18  (epoch 2017.8822 +/- 3.0209 yr, RMS 954.4 mas)
+m81m82_Light_blue_007.fits: estimated date 2018-03-13  (epoch 2018.1969 +/- 3.1610 yr, RMS 967.1 mas)
+m81m82_Light_blue_008.fits: estimated date 2018-11-18  (epoch 2018.8808 +/- 2.7352 yr, RMS 972.6 mas)
+m81m82_Light_blue_009.fits: estimated date 2017-12-07  (epoch 2017.9339 +/- 3.4695 yr, RMS 998.2 mas)
+m81m82_Light_blue_010.fits: estimated date 2017-08-11  (epoch 2017.6109 +/- 3.4438 yr, RMS 995.0 mas)
+m81m82_Light_blue_011.fits: estimated date 2017-11-09  (epoch 2017.8564 +/- 4.1418 yr, RMS 975.1 mas)
+m81m82_Light_blue_012.fits: estimated date 2019-03-25  (epoch 2019.2290 +/- 3.7392 yr, RMS 973.0 mas)
+m81m82_Light_blue_013.fits: estimated date 2017-02-13  (epoch 2017.1209 +/- 3.1512 yr, RMS 958.4 mas)
+m81m82_Light_blue_014.fits: estimated date 2016-05-19  (epoch 2016.3815 +/- 2.9619 yr, RMS 1001.7 mas)
+m81m82_Light_blue_015.fits: estimated date 2018-12-02  (epoch 2018.9198 +/- 3.3325 yr, RMS 975.4 mas)
+m81m82_Light_blue_016.fits: estimated date 2017-03-12  (epoch 2017.1948 +/- 3.0660 yr, RMS 993.7 mas)
+m81m82_Light_blue_017.fits: estimated date 2019-03-28  (epoch 2019.2371 +/- 3.0956 yr, RMS 1022.5 mas)
+m81m82_Light_blue_018.fits: estimated date 2015-06-09  (epoch 2015.4377 +/- 3.6287 yr, RMS 993.9 mas)
+m81m82_Light_blue_019.fits: estimated date 2016-05-12  (epoch 2016.3627 +/- 3.2466 yr, RMS 1105.1 mas)
+m81m82_Light_blue_020.fits: estimated date 2016-07-25  (epoch 2016.5643 +/- 2.9851 yr, RMS 1061.8 mas)
+m81m82_Light_green_001.fits: estimated date 2017-11-02  (epoch 2017.8391 +/- 3.7754 yr, RMS 1003.0 mas)
+m81m82_Light_green_002.fits: estimated date 2016-09-05  (epoch 2016.6814 +/- 2.6777 yr, RMS 960.0 mas)
+m81m82_Light_green_003.fits: estimated date 2017-08-16  (epoch 2017.6260 +/- 3.0265 yr, RMS 963.9 mas)
+m81m82_Light_green_004.fits: estimated date 2017-01-11  (epoch 2017.0302 +/- 3.0385 yr, RMS 976.7 mas)
+m81m82_Light_green_005.fits: estimated date 2017-07-31  (epoch 2017.5818 +/- 3.6742 yr, RMS 1017.4 mas)
+m81m82_Light_green_006.fits: estimated date 2018-06-29  (epoch 2018.4936 +/- 4.6689 yr, RMS 1019.6 mas)
+m81m82_Light_green_007.fits: estimated date 2017-01-30  (epoch 2017.0837 +/- 3.3866 yr, RMS 1012.3 mas)
+m81m82_Light_green_008.fits: estimated date 2017-04-25  (epoch 2017.3157 +/- 3.4637 yr, RMS 968.7 mas)
+m81m82_Light_green_009.fits: estimated date 2017-11-28  (epoch 2017.9092 +/- 3.7687 yr, RMS 1024.1 mas)
+m81m82_Light_green_010.fits: estimated date 2020-06-28  (epoch 2020.4925 +/- 2.7624 yr, RMS 1019.3 mas)
+m81m82_Light_green_011.fits: estimated date 2017-01-08  (epoch 2017.0224 +/- 3.0575 yr, RMS 1101.1 mas)
+m81m82_Light_green_012.fits: estimated date 2018-08-03  (epoch 2018.5897 +/- 5.3903 yr, RMS 1032.3 mas)
+m81m82_Light_green_013.fits: estimated date 2016-10-06  (epoch 2016.7662 +/- 3.1822 yr, RMS 1032.6 mas)
+
+71 dated, 0 failed, out of 71 file(s)
+
+Weighted average date (71 images):
+  Date:   2017-06-18
+  Epoch:  2017.4642 +/- 0.3966 yr (144.9 days)
+  
+2017-02-14_M81M82
+
+Loaded 558 usable stars from C:/Users/PC/Pictures/astro/2017-04-29 M106/gaia.csv
+
+Using equipment profile: C:/Users/PC/Pictures/astro/2017-04-29 M106/profile.json (order 3, held-out RMS 283.4 mas)
+
+m106_Light_blue_240_secs_001.fits: estimated date 2014-11-19  (epoch 2014.8841 +/- 4.8233 yr, RMS 945.1 mas)
+m106_Light_blue_240_secs_002.fits: estimated date 2012-06-22  (epoch 2012.4747 +/- 5.3316 yr, RMS 946.2 mas)
+m106_Light_blue_240_secs_003.fits: estimated date 2013-05-22  (epoch 2013.3881 +/- 4.6267 yr, RMS 786.6 mas)
+m106_Light_blue_240_secs_004.fits: estimated date 2015-08-18  (epoch 2015.6288 +/- 5.5236 yr, RMS 999.6 mas)
+m106_Light_blue_240_secs_005.fits: estimated date 2017-07-02  (epoch 2017.5013 +/- 4.5495 yr, RMS 951.0 mas)
+m106_Light_blue_240_secs_006.fits: estimated date 2015-06-02  (epoch 2015.4189 +/- 6.1833 yr, RMS 961.6 mas)
+m106_Light_blue_240_secs_007.fits: estimated date 2012-11-29  (epoch 2012.9135 +/- 7.3881 yr, RMS 979.6 mas)
+m106_Light_blue_240_secs_008.fits: estimated date 2012-07-09  (epoch 2012.5207 +/- 8.0692 yr, RMS 1003.3 mas)
+m106_Light_blue_240_secs_009.fits: estimated date 2020-06-19  (epoch 2020.4661 +/- 5.1223 yr, RMS 977.2 mas)
+m106_Light_blue_240_secs_010.fits: estimated date 2014-07-12  (epoch 2014.5273 +/- 4.9202 yr, RMS 999.6 mas)
+m106_Light_blue_240_secs_011.fits: estimated date 2013-09-20  (epoch 2013.7205 +/- 7.3885 yr, RMS 941.0 mas)
+m106_Light_blue_240_secs_012.fits: estimated date 2017-04-11  (epoch 2017.2775 +/- 4.2809 yr, RMS 983.4 mas)
+m106_Light_blue_240_secs_013.fits: estimated date 2016-09-03  (epoch 2016.6745 +/- 3.9570 yr, RMS 916.1 mas)
+m106_Light_blue_240_secs_014.fits: estimated date 2018-04-02  (epoch 2018.2533 +/- 4.4581 yr, RMS 958.5 mas)
+m106_Light_blue_240_secs_015.fits: estimated date 2016-12-11  (epoch 2016.9462 +/- 4.7571 yr, RMS 985.6 mas)
+m106_Light_clear_240_secs_001.fits: estimated date 2015-01-06  (epoch 2015.0146 +/- 5.7191 yr, RMS 846.3 mas)
+m106_Light_clear_240_secs_002.fits: estimated date 2016-03-13  (epoch 2016.1990 +/- 6.0639 yr, RMS 881.5 mas)
+m106_Light_clear_240_secs_003.fits: estimated date 2018-01-06  (epoch 2018.0160 +/- 5.7728 yr, RMS 846.5 mas)
+m106_Light_clear_240_secs_004.fits: estimated date 2017-11-04  (epoch 2017.8428 +/- 5.4938 yr, RMS 822.8 mas)
+m106_Light_clear_240_secs_005.fits: estimated date 2018-01-29  (epoch 2018.0784 +/- 4.5237 yr, RMS 862.4 mas)
+m106_Light_clear_240_secs_006.fits: estimated date 2012-09-21  (epoch 2012.7230 +/- 5.5605 yr, RMS 872.5 mas)
+m106_Light_clear_240_secs_007.fits: estimated date 2018-05-08  (epoch 2018.3516 +/- 4.8559 yr, RMS 850.3 mas)
+m106_Light_clear_240_secs_008.fits: estimated date 2015-11-18  (epoch 2015.8803 +/- 4.0087 yr, RMS 842.8 mas)
+m106_Light_clear_240_secs_009.fits: estimated date 2018-08-25  (epoch 2018.6476 +/- 5.5223 yr, RMS 846.3 mas)
+m106_Light_clear_240_secs_010.fits: estimated date 2015-01-09  (epoch 2015.0231 +/- 7.3429 yr, RMS 888.4 mas)
+m106_Light_clear_240_secs_011.fits: estimated date 2016-05-12  (epoch 2016.3636 +/- 5.2417 yr, RMS 868.6 mas)
+m106_Light_clear_240_secs_012.fits: estimated date 2016-01-06  (epoch 2016.0154 +/- 5.9478 yr, RMS 870.8 mas)
+m106_Light_clear_240_secs_013.fits: estimated date 2016-12-31  (epoch 2017.0013 +/- 4.6778 yr, RMS 926.7 mas)
+m106_Light_clear_240_secs_014.fits: estimated date 2015-10-22  (epoch 2015.8076 +/- 5.7164 yr, RMS 880.7 mas)
+m106_Light_clear_240_secs_015.fits: estimated date 2014-03-30  (epoch 2014.2427 +/- 7.5437 yr, RMS 894.0 mas)
+m106_Light_green_240_secs_001.fits: estimated date 2015-04-18  (epoch 2015.2952 +/- 4.4198 yr, RMS 962.7 mas)
+m106_Light_green_240_secs_002.fits: estimated date 2016-12-10  (epoch 2016.9434 +/- 5.2181 yr, RMS 952.5 mas)
+m106_Light_green_240_secs_003.fits: estimated date 2014-03-19  (epoch 2014.2143 +/- 5.8294 yr, RMS 958.0 mas)
+m106_Light_green_240_secs_004.fits: estimated date 2013-05-19  (epoch 2013.3808 +/- 5.1695 yr, RMS 947.8 mas)
+m106_Light_green_240_secs_005.fits: estimated date 2016-12-30  (epoch 2016.9980 +/- 4.9940 yr, RMS 965.7 mas)
+m106_Light_green_240_secs_006.fits: estimated date 2012-02-10  (epoch 2012.1107 +/- 7.1728 yr, RMS 975.0 mas)
+m106_Light_green_240_secs_007.fits: estimated date 2015-09-02  (epoch 2015.6713 +/- 5.2036 yr, RMS 973.5 mas)
+m106_Light_green_240_secs_008.fits: estimated date 2010-12-31  (epoch 2011.0003 +/- 6.5244 yr, RMS 922.6 mas)
+m106_Light_green_240_secs_009.fits: estimated date 2013-07-11  (epoch 2013.5253 +/- 4.9266 yr, RMS 947.1 mas)
+m106_Light_green_240_secs_010.fits: estimated date 2012-10-14  (epoch 2012.7870 +/- 7.1678 yr, RMS 949.2 mas)
+m106_Light_green_240_secs_011.fits: estimated date 2012-01-16  (epoch 2012.0426 +/- 9.2105 yr, RMS 1094.8 mas)
+m106_Light_green_240_secs_012.fits: estimated date 2014-12-01  (epoch 2014.9182 +/- 6.5162 yr, RMS 1023.9 mas)
+m106_Light_green_240_secs_013.fits: estimated date 2014-01-17  (epoch 2014.0465 +/- 4.9378 yr, RMS 1039.2 mas)
+m106_Light_green_240_secs_014.fits: estimated date 2016-04-14  (epoch 2016.2864 +/- 5.9179 yr, RMS 1090.9 mas)
+m106_Light_green_240_secs_015.fits: estimated date 2011-09-08  (epoch 2011.6869 +/- 9.8017 yr, RMS 1299.1 mas)
+m106_Light_green_240_secs_016.fits: estimated date 2017-03-12  (epoch 2017.1940 +/- 5.0236 yr, RMS 1104.6 mas)
+
+46 dated, 0 failed, out of 46 file(s)
+
+Weighted average date (45 images, 1 excluded -- not converged, rank-deficient, or no usable sigma):
+  Date:   2015-10-02
+  Epoch:  2015.7520 +/- 0.8040 yr (293.7 days)
+  
+2017-04-29 M106
+
+Loaded 603 usable stars from C:/Users/PC/Pictures/astro/2017-03-28 M65 Leo Triplet M102 LRGB/m65/Light/gaia.csv
+
+Using equipment profile: C:/Users/PC/Pictures/astro/2017-03-28 M65 Leo Triplet M102 LRGB/m65/Light/profile.json (order 1, held-out RMS 875.6 mas)
+
+m65_Light_clear_10_secs_001.fits: FAILED -- no stars detected in the image
+m65_Light_clear_240_secs_001.fits: estimated date 2016-04-13  (epoch 2016.2837 +/- 6.8830 yr, RMS 1298.1 mas)
+m65_Light_clear_240_secs_002.fits: estimated date 2017-03-04  (epoch 2017.1724 +/- 6.2678 yr, RMS 1081.5 mas)
+m65_Light_clear_240_secs_003.fits: estimated date 2017-11-28  (epoch 2017.9101 +/- 6.1496 yr, RMS 1081.4 mas)
+m65_Light_clear_240_secs_004.fits: estimated date 2016-08-14  (epoch 2016.6195 +/- 5.1209 yr, RMS 1026.9 mas)
+m65_Light_clear_240_secs_005.fits: estimated date 2017-08-03  (epoch 2017.5887 +/- 3.0120 yr, RMS 1060.0 mas)
+m65_Light_clear_240_secs_006.fits: estimated date 2017-03-03  (epoch 2017.1696 +/- 6.1815 yr, RMS 1158.3 mas)
+m65_Light_clear_240_secs_007.fits: estimated date 2018-01-30  (epoch 2018.0824 +/- 6.6803 yr, RMS 1172.5 mas)
+m65_Light_clear_240_secs_008.fits: estimated date 2017-01-10  (epoch 2017.0271 +/- 3.7089 yr, RMS 1102.5 mas)
+m65_Light_clear_240_secs_009.fits: estimated date 2017-09-09  (epoch 2017.6894 +/- 6.5275 yr, RMS 1134.1 mas)
+m65_Light_clear_240_secs_010.fits: estimated date 2016-11-06  (epoch 2016.8498 +/- 5.9690 yr, RMS 1135.1 mas)
+m65_Light_clear_240_secs_011.fits: estimated date 2016-07-28  (epoch 2016.5726 +/- 7.9021 yr, RMS 1142.6 mas)
+m65_Light_clear_240_secs_012.fits: estimated date 2017-09-21  (epoch 2017.7238 +/- 7.7146 yr, RMS 1163.7 mas)
+m65_Light_clear_240_secs_013.fits: estimated date 2016-09-24  (epoch 2016.7336 +/- 5.0127 yr, RMS 1211.2 mas)
+m65_Light_clear_240_secs_014.fits: estimated date 2017-11-22  (epoch 2017.8945 +/- 6.5076 yr, RMS 1091.5 mas)
+m65_Light_clear_240_secs_015.fits: estimated date 2017-07-19  (epoch 2017.5487 +/- 7.3526 yr, RMS 1175.9 mas)
+
+15 dated, 1 failed, out of 16 file(s)
+
+Weighted average date (15 images):
+  Date:   2017-04-05
+  Epoch:  2017.2600 +/- 1.4018 yr (512.0 days)
+  
+2017-03-28 M65
+
+Loaded 877 usable stars from C:/Users/PC/Pictures/astro/2017-03-28 M65 Leo Triplet M102 LRGB/m102/light/gaia.csv
+
+Using equipment profile: C:/Users/PC/Pictures/astro/2017-03-28 M65 Leo Triplet M102 LRGB/m102/light/profile.json (order 3, held-out RMS 280.1 mas)
+
+m102_Light_clear_100_secs_001.fits: estimated date 2014-07-05  (epoch 2014.5105 +/- 3.6935 yr, RMS 885.5 mas)
+m102_Light_clear_20_secs_001.fits: estimated date 2020-08-27  (epoch 2020.6546 +/- 18.0987 yr, RMS 388.1 mas)
+m102_Light_clear_20_secs_002.fits: estimated date 2018-03-08  (epoch 2018.1836 +/- 2.8465 yr, RMS 630.8 mas)
+m102_Light_clear_20_secs_003.fits: estimated date 2015-07-21  (epoch 2015.5517 +/- 3.0116 yr, RMS 735.0 mas)
+m102_Light_clear_20_secs_004.fits: estimated date 2015-08-27  (epoch 2015.6529 +/- 6.0125 yr, RMS 966.0 mas)
+m102_Light_clear_20_secs_005.fits: estimated date 2017-02-21  (epoch 2017.1433 +/- 4.0822 yr, RMS 948.7 mas)
+m102_Light_clear_20_secs_006.fits: estimated date 2015-04-21  (epoch 2015.3019 +/- 2.8609 yr, RMS 626.6 mas)
+m102_Light_clear_20_secs_007.fits: estimated date 2016-06-28  (epoch 2016.4920 +/- 5.7198 yr, RMS 1124.3 mas)
+m102_Light_clear_20_secs_008.fits: estimated date 2016-08-21  (epoch 2016.6382 +/- 4.7243 yr, RMS 1020.1 mas)
+m102_Light_clear_20_secs_009.fits: estimated date 2017-09-28  (epoch 2017.7427 +/- 4.9786 yr, RMS 986.1 mas)
+m102_Light_clear_240_secs_001.fits: estimated date 2016-02-19  (epoch 2016.1346 +/- 2.8633 yr, RMS 876.7 mas)
+m102_Light_clear_240_secs_002.fits: estimated date 2015-04-13  (epoch 2015.2823 +/- 3.1357 yr, RMS 893.7 mas)
+m102_Light_clear_240_secs_003.fits: estimated date 2015-01-07  (epoch 2015.0181 +/- 3.6876 yr, RMS 869.5 mas)
+m102_Light_clear_240_secs_004.fits: estimated date 2015-10-30  (epoch 2015.8281 +/- 3.4641 yr, RMS 870.2 mas)
+m102_Light_clear_240_secs_005.fits: estimated date 2017-11-06  (epoch 2017.8507 +/- 3.3540 yr, RMS 882.3 mas)
+m102_Light_clear_240_secs_006.fits: estimated date 2017-05-13  (epoch 2017.3654 +/- 3.5753 yr, RMS 850.6 mas)
+m102_Light_clear_240_secs_007.fits: estimated date 2017-03-23  (epoch 2017.2241 +/- 3.3173 yr, RMS 878.2 mas)
+m102_Light_clear_240_secs_008.fits: estimated date 2015-06-07  (epoch 2015.4313 +/- 3.4470 yr, RMS 878.0 mas)
+m102_Light_clear_240_secs_009.fits: estimated date 2013-11-30  (epoch 2013.9152 +/- 3.5945 yr, RMS 853.1 mas)
+m102_Light_clear_240_secs_010.fits: estimated date 2014-05-29  (epoch 2014.4087 +/- 3.3415 yr, RMS 906.6 mas)
+m102_Light_clear_240_secs_011.fits: estimated date 2016-07-11  (epoch 2016.5258 +/- 3.2639 yr, RMS 906.3 mas)
+m102_Light_clear_240_secs_012.fits: estimated date 2017-01-03  (epoch 2017.0097 +/- 3.7389 yr, RMS 864.0 mas)
+m102_Light_clear_240_secs_013.fits: estimated date 2014-12-16  (epoch 2014.9594 +/- 4.3518 yr, RMS 891.1 mas)
+m102_Light_clear_240_secs_014.fits: estimated date 2014-11-01  (epoch 2014.8352 +/- 3.3193 yr, RMS 921.3 mas)
+m102_Light_clear_240_secs_015.fits: estimated date 2015-11-23  (epoch 2015.8942 +/- 3.3650 yr, RMS 864.4 mas)
+m102_Light_clear_240_secs_016.fits: estimated date 2015-04-04  (epoch 2015.2567 +/- 3.2749 yr, RMS 818.4 mas)
+m102_Light_clear_240_secs_017.fits: estimated date 2016-01-12  (epoch 2016.0316 +/- 3.0762 yr, RMS 824.6 mas)
+m102_Light_clear_240_secs_018.fits: estimated date 2015-08-05  (epoch 2015.5942 +/- 3.0024 yr, RMS 836.4 mas)
+m102_Light_clear_240_secs_019.fits: estimated date 2016-01-13  (epoch 2016.0339 +/- 2.5844 yr, RMS 794.5 mas)
+m102_Light_clear_240_secs_020.fits: estimated date 2016-06-26  (epoch 2016.4858 +/- 2.7587 yr, RMS 842.5 mas)
+m102_Light_clear_240_secs_021.fits: estimated date 2016-03-16  (epoch 2016.2064 +/- 2.8614 yr, RMS 836.6 mas)
+m102_Light_clear_240_secs_022.fits: estimated date 2017-01-19  (epoch 2017.0540 +/- 3.5701 yr, RMS 988.6 mas)
+m102_Light_clear_240_secs_023.fits: estimated date 2016-04-04  (epoch 2016.2590 +/- 2.9731 yr, RMS 919.0 mas)
+m102_Light_clear_240_secs_024.fits: estimated date 2016-11-11  (epoch 2016.8639 +/- 3.0465 yr, RMS 897.7 mas)
+m102_Light_clear_240_secs_025.fits: estimated date 2017-07-21  (epoch 2017.5541 +/- 3.0893 yr, RMS 926.5 mas)
+m102_Light_clear_240_secs_026.fits: estimated date 2016-06-01  (epoch 2016.4164 +/- 3.0367 yr, RMS 857.8 mas)
+
+36 dated, 0 failed, out of 36 file(s)
+
+Weighted average date (36 images):
+  Date:   2016-02-22
+  Epoch:  2016.1424 +/- 0.5636 yr (205.9 days)
+
+2017-03-28 M102
+
+Loaded 1499 usable stars from C:/Users/PC/Pictures/astro/2017-09-24_fireworksgalaxy_m33/m33/gaia.csv
+
+Using equipment profile: C:/Users/PC/Pictures/astro/2017-09-24_fireworksgalaxy_m33/m33/profile.json (order 3, held-out RMS 386.4 mas)
+
+m33_Light_clear_240_secs_021.fits: estimated date 2017-05-03  (epoch 2017.3361 +/- 3.0526 yr, RMS 576.5 mas)
+m33_Light_clear_240_secs_022.fits: estimated date 2019-09-02  (epoch 2019.6710 +/- 2.7794 yr, RMS 562.9 mas)
+m33_Light_clear_240_secs_023.fits: estimated date 2017-03-14  (epoch 2017.2016 +/- 3.1589 yr, RMS 490.6 mas)
+m33_Light_clear_240_secs_024.fits: estimated date 2020-03-13  (epoch 2020.1989 +/- 3.4122 yr, RMS 564.9 mas)
+m33_Light_clear_240_secs_025.fits: estimated date 2019-12-31  (epoch 2019.9982 +/- 2.7748 yr, RMS 559.6 mas)
+m33_Light_clear_240_secs_026.fits: estimated date 2016-07-24  (epoch 2016.5632 +/- 2.9771 yr, RMS 551.4 mas)
+m33_Light_clear_240_secs_027.fits: estimated date 2017-11-20  (epoch 2017.8889 +/- 3.5671 yr, RMS 588.6 mas)
+m33_Light_clear_240_secs_028.fits: estimated date 2017-09-30  (epoch 2017.7486 +/- 4.4743 yr, RMS 620.0 mas)
+m33_Light_clear_240_secs_029.fits: estimated date 2017-05-05  (epoch 2017.3430 +/- 3.3521 yr, RMS 540.9 mas)
+m33_Light_clear_240_secs_030.fits: estimated date 2018-06-22  (epoch 2018.4742 +/- 2.7718 yr, RMS 508.1 mas)
+m33_Light_clear_240_secs_031.fits: estimated date 2017-06-01  (epoch 2017.4173 +/- 2.9502 yr, RMS 517.1 mas)
+m33_Light_clear_240_secs_032.fits: estimated date 2018-05-16  (epoch 2018.3722 +/- 2.4032 yr, RMS 480.6 mas)
+m33_Light_clear_240_secs_033.fits: estimated date 2016-11-03  (epoch 2016.8425 +/- 3.0294 yr, RMS 537.2 mas)
+m33_Light_clear_240_secs_034.fits: estimated date 2017-09-10  (epoch 2017.6926 +/- 3.2146 yr, RMS 567.9 mas)
+m33_Light_clear_240_secs_035.fits: estimated date 2016-04-01  (epoch 2016.2512 +/- 2.9978 yr, RMS 541.8 mas)
+m33_Light_ha_240_secs_001.fits: estimated date 2018-12-26  (epoch 2018.9866 +/- 4.1316 yr, RMS 675.7 mas)
+m33_Light_ha_240_secs_002.fits: estimated date 2016-09-11  (epoch 2016.6973 +/- 3.3899 yr, RMS 677.6 mas)
+m33_Light_ha_240_secs_003.fits: estimated date 2017-07-11  (epoch 2017.5277 +/- 3.3990 yr, RMS 656.6 mas)
+m33_Light_ha_240_secs_004.fits: estimated date 2016-08-20  (epoch 2016.6366 +/- 3.8568 yr, RMS 701.9 mas)
+m33_Light_ha_240_secs_005.fits: estimated date 2018-04-19  (epoch 2018.2983 +/- 4.2213 yr, RMS 665.3 mas)
+m33_Light_ha_240_secs_006.fits: estimated date 2016-01-30  (epoch 2016.0808 +/- 4.7013 yr, RMS 677.1 mas)
+m33_Light_ha_240_secs_007.fits: estimated date 2014-10-04  (epoch 2014.7573 +/- 4.1240 yr, RMS 763.8 mas)
+m33_Light_ha_240_secs_008.fits: estimated date 2016-04-02  (epoch 2016.2527 +/- 5.3516 yr, RMS 743.8 mas)
+m33_Light_ha_240_secs_009.fits: estimated date 2016-11-17  (epoch 2016.8799 +/- 6.4075 yr, RMS 760.1 mas)
+m33_Light_ha_240_secs_010.fits: estimated date 2019-05-02  (epoch 2019.3335 +/- 3.9850 yr, RMS 779.6 mas)
+m33_Light_ha_240_secs_011.fits: estimated date 2015-11-01  (epoch 2015.8339 +/- 4.2371 yr, RMS 736.6 mas)
+m33_Light_ha_240_secs_012.fits: estimated date 2019-09-14  (epoch 2019.7035 +/- 4.3376 yr, RMS 742.1 mas)
+m33_Light_ha_240_secs_013.fits: estimated date 2018-04-28  (epoch 2018.3234 +/- 6.0917 yr, RMS 768.6 mas)
+m33_Light_ha_240_secs_014.fits: estimated date 2020-03-02  (epoch 2020.1676 +/- 4.2944 yr, RMS 706.6 mas)
+m33_Light_ha_240_secs_015.fits: estimated date 2018-10-23  (epoch 2018.8114 +/- 4.5929 yr, RMS 774.1 mas)
+m33_Light_ha_240_secs_016.fits: estimated date 2016-12-24  (epoch 2016.9810 +/- 4.4451 yr, RMS 812.0 mas)
+m33_Light_ha_240_secs_017.fits: estimated date 2019-11-27  (epoch 2019.9062 +/- 4.5743 yr, RMS 693.8 mas)
+m33_Light_red_240_secs_006.fits: estimated date 2019-10-05  (epoch 2019.7594 +/- 2.9162 yr, RMS 586.0 mas)
+m33_Light_red_240_secs_007.fits: estimated date 2018-07-10  (epoch 2018.5232 +/- 2.9638 yr, RMS 572.5 mas)
+m33_Light_red_240_secs_008.fits: estimated date 2017-09-15  (epoch 2017.7082 +/- 2.0304 yr, RMS 531.6 mas)
+m33_Light_red_240_secs_009.fits: estimated date 2017-10-08  (epoch 2017.7705 +/- 2.4681 yr, RMS 524.0 mas)
+m33_Light_red_240_secs_010.fits: estimated date 2017-10-21  (epoch 2017.8050 +/- 2.7092 yr, RMS 553.3 mas)
+m33_Light_red_240_secs_011.fits: estimated date 2017-06-28  (epoch 2017.4907 +/- 2.5321 yr, RMS 558.7 mas)
+
+38 dated, 0 failed, out of 38 file(s)
+
+Weighted average date (38 images):
+  Date:   2017-12-05
+  Epoch:  2017.9288 +/- 0.5371 yr (196.2 days)
+
+2017-09-24 M33
+
+Loaded 533 usable stars from C:/Users/PC/Pictures/astro/2018-05-19 NGC4395/light/gaia.csv
+
+Using equipment profile: C:/Users/PC/Pictures/astro/2018-05-19 NGC4395/light/profile.json (order 1, held-out RMS 1358.7 mas)
+
+ngc4395_Light_clear_240_secs_001.fits: estimated date 2017-07-15  (epoch 2017.5373 +/- 5.5298 yr, RMS 1370.3 mas)
+ngc4395_Light_clear_240_secs_002.fits: estimated date 2016-10-10  (epoch 2016.7756 +/- 6.2274 yr, RMS 1395.3 mas)
+ngc4395_Light_clear_240_secs_003.fits: estimated date 2018-03-08  (epoch 2018.1822 +/- 5.5329 yr, RMS 1369.5 mas)
+ngc4395_Light_clear_240_secs_004.fits: estimated date 2017-01-14  (epoch 2017.0391 +/- 7.2255 yr, RMS 1463.2 mas)
+ngc4395_Light_clear_240_secs_005.fits: estimated date 2018-06-11  (epoch 2018.4428 +/- 5.2212 yr, RMS 1418.0 mas)
+ngc4395_Light_clear_240_secs_006.fits: estimated date 2017-12-02  (epoch 2017.9214 +/- 5.0381 yr, RMS 1411.8 mas)
+ngc4395_Light_clear_240_secs_007.fits: estimated date 2017-07-15  (epoch 2017.5361 +/- 5.4472 yr, RMS 1434.8 mas)
+ngc4395_Light_clear_240_secs_008.fits: estimated date 2017-05-03  (epoch 2017.3385 +/- 5.4270 yr, RMS 1458.4 mas)
+ngc4395_Light_clear_240_secs_009.fits: estimated date 2018-02-07  (epoch 2018.1036 +/- 5.0562 yr, RMS 1426.1 mas)
+ngc4395_Light_clear_240_secs_010.fits: estimated date 2016-11-22  (epoch 2016.8938 +/- 6.0719 yr, RMS 1449.6 mas)
+ngc4395_Light_clear_240_secs_011.fits: estimated date 2017-09-26  (epoch 2017.7362 +/- 5.2591 yr, RMS 1393.7 mas)
+ngc4395_Light_clear_240_secs_012.fits: estimated date 2017-11-25  (epoch 2017.9015 +/- 5.0751 yr, RMS 1396.5 mas)
+ngc4395_Light_clear_240_secs_013.fits: estimated date 2017-12-21  (epoch 2017.9736 +/- 4.9720 yr, RMS 1385.1 mas)
+ngc4395_Light_clear_240_secs_014.fits: estimated date 2017-07-20  (epoch 2017.5508 +/- 5.3014 yr, RMS 1409.4 mas)
+ngc4395_Light_clear_240_secs_015.fits: estimated date 2017-09-25  (epoch 2017.7342 +/- 5.4614 yr, RMS 1413.4 mas)
+
+15 dated, 0 failed, out of 15 file(s)
+
+Weighted average date (15 images):
+  Date:   2017-09-14
+  Epoch:  2017.7041 +/- 1.4074 yr (514.1 days)
+
+2018-05-19 NGC4395
+
+Loaded 9840 usable stars from C:/Users/PC/Pictures/astro/2026-08-12 ic5146 M31/ic5146/gaia.csv
+
+Using equipment profile: C:/Users/PC/Pictures/astro/2026-08-12 ic5146 M31/ic5146/profile.json (order 4, held-out RMS 499.9 mas)
+
+ic5146_Light_001.fits: estimated date 2025-07-08  (epoch 2025.5177 +/- 2.4568 yr, RMS 928.9 mas)
+ic5146_Light_002.fits: estimated date 2024-04-20  (epoch 2024.3029 +/- 3.1086 yr, RMS 1075.3 mas)
+ic5146_Light_003.fits: estimated date 2026-03-19  (epoch 2026.2138 +/- 2.5956 yr, RMS 891.2 mas)
+ic5146_Light_004.fits: estimated date 2022-02-14  (epoch 2022.1244 +/- 3.1127 yr, RMS 1058.6 mas)
+ic5146_Light_005.fits: estimated date 2025-04-20  (epoch 2025.3029 +/- 2.8578 yr, RMS 881.8 mas)
+ic5146_Light_006.fits: estimated date 2022-03-08  (epoch 2022.1825 +/- 3.1184 yr, RMS 986.1 mas)
+ic5146_Light_007.fits: estimated date 2022-08-13  (epoch 2022.6155 +/- 3.1430 yr, RMS 1014.7 mas)
+ic5146_Light_008.fits: estimated date 2023-03-07  (epoch 2023.1798 +/- 2.6471 yr, RMS 912.6 mas)
+ic5146_Light_009.fits: estimated date 2023-10-17  (epoch 2023.7920 +/- 3.4743 yr, RMS 1036.7 mas)
+ic5146_Light_010.fits: estimated date 2021-09-08  (epoch 2021.6867 +/- 2.9814 yr, RMS 933.7 mas)
+ic5146_Light_011.fits: estimated date 2023-07-07  (epoch 2023.5148 +/- 3.2446 yr, RMS 1003.2 mas)
+ic5146_Light_012.fits: estimated date 2022-10-14  (epoch 2022.7852 +/- 3.5386 yr, RMS 1073.2 mas)
+ic5146_Light_013.fits: estimated date 2020-04-21  (epoch 2020.3041 +/- 4.9957 yr, RMS 1117.7 mas)
+ic5146_Light_014.fits: estimated date 2023-05-01  (epoch 2023.3306 +/- 3.3146 yr, RMS 1150.7 mas)
+ic5146_Light_015.fits: estimated date 2022-11-01  (epoch 2022.8358 +/- 3.4941 yr, RMS 1071.1 mas)
+ic5146_Light_016.fits: estimated date 2024-06-10  (epoch 2024.4412 +/- 2.3719 yr, RMS 879.0 mas)
+ic5146_Light_017.fits: estimated date 2023-09-16  (epoch 2023.7090 +/- 3.3803 yr, RMS 1015.3 mas)
+ic5146_Light_018.fits: estimated date 2021-03-06  (epoch 2021.1783 +/- 3.1491 yr, RMS 1054.4 mas)
+ic5146_Light_019.fits: estimated date 2027-05-18  (epoch 2027.3761 +/- 2.0730 yr, RMS 774.7 mas)
+ic5146_Light_020.fits: estimated date 2023-03-23  (epoch 2023.2240 +/- 3.3132 yr, RMS 1042.5 mas)
+ic5146_Light_021.fits: estimated date 2022-03-21  (epoch 2022.2182 +/- 3.1431 yr, RMS 1069.4 mas)
+ic5146_Light_022.fits: estimated date 2025-10-17  (epoch 2025.7954 +/- 2.7079 yr, RMS 949.2 mas)
+
+22 dated, 0 failed, out of 22 file(s)
+
+Weighted average date (22 images):
+  Date:   2023-12-25
+  Epoch:  2023.9824 +/- 0.6324 yr (231.0 days)
+
+2026-08-12 IC5146
+  
+Loaded 2215 usable stars from C:/Users/PC/Pictures/astro/2026-08-12 ic5146 M31/m31/Light/gaia.csv
+
+Using equipment profile: C:/Users/PC/Pictures/astro/2026-08-12 ic5146 M31/m31/Light/profile.json (order 3, held-out RMS 123.2 mas)
+
+m31_Light_001.fits: estimated date 2024-10-17  (epoch 2024.7943 +/- 2.8142 yr, RMS 810.2 mas)
+m31_Light_002.fits: estimated date 2024-12-11  (epoch 2024.9452 +/- 2.8239 yr, RMS 814.9 mas)
+m31_Light_003.fits: estimated date 2024-03-04  (epoch 2024.1731 +/- 2.8548 yr, RMS 826.6 mas)
+m31_Light_004.fits: estimated date 2025-04-10  (epoch 2025.2755 +/- 2.8156 yr, RMS 804.2 mas)
+m31_Light_005.fits: estimated date 2024-03-04  (epoch 2024.1729 +/- 2.8132 yr, RMS 807.7 mas)
+m31_Light_006.fits: estimated date 2024-07-14  (epoch 2024.5339 +/- 2.8973 yr, RMS 819.0 mas)
+m31_Light_007.fits: estimated date 2024-10-07  (epoch 2024.7673 +/- 2.8023 yr, RMS 813.0 mas)
+m31_Light_008.fits: estimated date 2024-10-18  (epoch 2024.7982 +/- 2.8494 yr, RMS 814.1 mas)
+m31_Light_009.fits: estimated date 2025-03-10  (epoch 2025.1901 +/- 2.9143 yr, RMS 806.5 mas)
+m31_Light_010.fits: estimated date 2025-07-06  (epoch 2025.5115 +/- 2.8452 yr, RMS 838.8 mas)
+
+10 dated, 0 failed, out of 10 file(s)
+
+Weighted average date (10 images):
+  Date:   2024-10-24
+  Epoch:  2024.8154 +/- 0.8988 yr (328.3 days)
+  
+2026-08-12 ic5146 M31
+
+
+Loaded 7830 usable stars from C:/Users/PC/Pictures/astro/2023-09-18/bubble-nebula/Light/gaia.csv
+
+Using equipment profile: C:/Users/PC/Pictures/astro/2023-09-18/bubble-nebula/Light/profile.json (order 3, held-out RMS 611.9 mas)
+
+bubble-nebula_Light_Ha_001.fits: estimated date 2026-12-10  (epoch 2026.9425 +/- 3.4057 yr, RMS 977.1 mas)
+bubble-nebula_Light_Ha_002.fits: estimated date 2026-10-15  (epoch 2026.7890 +/- 3.5204 yr, RMS 998.6 mas)
+bubble-nebula_Light_Ha_003.fits: estimated date 2026-10-20  (epoch 2026.8011 +/- 3.8493 yr, RMS 1010.9 mas)
+bubble-nebula_Light_Ha_004.fits: estimated date 2024-12-25  (epoch 2024.9835 +/- 4.8816 yr, RMS 969.7 mas)
+bubble-nebula_Light_Ha_005.fits: estimated date 2025-02-23  (epoch 2025.1498 +/- 4.9208 yr, RMS 987.2 mas)
+bubble-nebula_Light_Ha_006.fits: estimated date 2026-01-29  (epoch 2026.0803 +/- 3.5910 yr, RMS 1018.5 mas)
+bubble-nebula_Light_Ha_007.fits: estimated date 2024-04-21  (epoch 2024.3065 +/- 5.0203 yr, RMS 1043.5 mas)
+bubble-nebula_Light_Ha_008.fits: estimated date 2025-04-09  (epoch 2025.2713 +/- 3.9002 yr, RMS 966.4 mas)
+bubble-nebula_Light_Ha_009.fits: estimated date 2026-06-07  (epoch 2026.4318 +/- 3.7514 yr, RMS 1017.4 mas)
+bubble-nebula_Light_Ha_010.fits: estimated date 2021-09-20  (epoch 2021.7201 +/- 4.3030 yr, RMS 1014.8 mas)
+bubble-nebula_Light_Ha_011.fits: estimated date 2024-12-28  (epoch 2024.9925 +/- 4.5838 yr, RMS 1079.3 mas)
+bubble-nebula_Light_Ha_012.fits: estimated date 2025-09-27  (epoch 2025.7395 +/- 3.0226 yr, RMS 1041.3 mas)
+bubble-nebula_Light_Ha_013.fits: estimated date 2021-03-15  (epoch 2021.2040 +/- 5.1651 yr, RMS 1033.3 mas)
+bubble-nebula_Light_Ha_014.fits: estimated date 2023-03-29  (epoch 2023.2399 +/- 4.0080 yr, RMS 1048.0 mas)
+bubble-nebula_Light_Ha_015.fits: estimated date 2025-01-07  (epoch 2025.0204 +/- 4.6369 yr, RMS 1053.9 mas)
+bubble-nebula_Light_Ha_016.fits: estimated date 2026-06-03  (epoch 2026.4204 +/- 3.3710 yr, RMS 1033.4 mas)
+bubble-nebula_Light_Ha_017.fits: estimated date 2025-12-02  (epoch 2025.9215 +/- 4.8942 yr, RMS 1052.4 mas)
+bubble-nebula_Light_Ha_018.fits: estimated date 2026-01-20  (epoch 2026.0561 +/- 3.6002 yr, RMS 999.6 mas)
+bubble-nebula_Light_Ha_019.fits: estimated date 2025-11-30  (epoch 2025.9164 +/- 3.5457 yr, RMS 996.6 mas)
+bubble-nebula_Light_Ha_020.fits: estimated date 2026-02-10  (epoch 2026.1113 +/- 3.2924 yr, RMS 1032.9 mas)
+
+20 dated, 0 failed, out of 20 file(s)
+
+Weighted average date (20 images):
+  Date:   2025-07-11
+  Epoch:  2025.5258 +/- 0.8745 yr (319.4 days)
+  
+2023-09-18 Bubble nebula
+
+Loaded 7033 usable stars from C:/Users/PC/Pictures/astro/2023-09-18/NGC_281/Light/gaia.csv
+
+Using equipment profile: C:/Users/PC/Pictures/astro/2023-09-18/NGC_281/Light/profile.json (order 3, held-out RMS 519.3 mas)
+
+NGC_281_Light_Ha_001.fits: estimated date 2024-06-06  (epoch 2024.4308 +/- 2.1832 yr, RMS 581.0 mas)
+NGC_281_Light_Ha_002.fits: estimated date 2023-08-08  (epoch 2023.6005 +/- 2.3705 yr, RMS 599.8 mas)
+NGC_281_Light_Ha_003.fits: estimated date 2024-07-23  (epoch 2024.5601 +/- 2.3314 yr, RMS 593.2 mas)
+NGC_281_Light_Ha_004.fits: estimated date 2024-05-13  (epoch 2024.3661 +/- 2.2929 yr, RMS 580.3 mas)
+NGC_281_Light_Ha_005.fits: estimated date 2023-09-10  (epoch 2023.6909 +/- 2.2426 yr, RMS 594.4 mas)
+NGC_281_Light_Ha_006.fits: estimated date 2024-02-03  (epoch 2024.0911 +/- 2.4257 yr, RMS 604.8 mas)
+NGC_281_Light_Ha_007.fits: estimated date 2025-07-13  (epoch 2025.5315 +/- 2.5627 yr, RMS 570.0 mas)
+NGC_281_Light_Ha_008.fits: estimated date 2023-09-24  (epoch 2023.7293 +/- 2.0538 yr, RMS 584.7 mas)
+NGC_281_Light_Ha_009.fits: estimated date 2024-03-23  (epoch 2024.2257 +/- 2.5959 yr, RMS 603.2 mas)
+NGC_281_Light_Ha_010.fits: estimated date 2024-08-23  (epoch 2024.6446 +/- 2.2819 yr, RMS 601.4 mas)
+NGC_281_Light_Ha_011.fits: estimated date 2023-01-25  (epoch 2023.0675 +/- 2.3273 yr, RMS 593.4 mas)
+NGC_281_Light_Ha_012.fits: estimated date 2024-02-06  (epoch 2024.0993 +/- 2.7572 yr, RMS 610.9 mas)
+NGC_281_Light_Ha_013.fits: estimated date 2024-12-23  (epoch 2024.9789 +/- 2.6879 yr, RMS 608.6 mas)
+NGC_281_Light_Ha_014.fits: estimated date 2024-04-01  (epoch 2024.2518 +/- 2.5219 yr, RMS 624.6 mas)
+NGC_281_Light_Ha_015.fits: estimated date 2022-06-24  (epoch 2022.4790 +/- 2.3603 yr, RMS 603.5 mas)
+NGC_281_Light_Ha_016.fits: estimated date 2024-07-20  (epoch 2024.5515 +/- 3.0615 yr, RMS 643.6 mas)
+NGC_281_Light_Ha_017.fits: estimated date 2024-11-22  (epoch 2024.8947 +/- 2.9061 yr, RMS 626.4 mas)
+NGC_281_Light_Ha_018.fits: estimated date 2023-12-27  (epoch 2023.9866 +/- 2.3462 yr, RMS 589.8 mas)
+NGC_281_Light_Ha_019.fits: estimated date 2025-01-11  (epoch 2025.0318 +/- 2.5353 yr, RMS 576.4 mas)
+NGC_281_Light_Ha_020.fits: estimated date 2024-04-29  (epoch 2024.3262 +/- 2.6732 yr, RMS 610.7 mas)
+
+20 dated, 0 failed, out of 20 file(s)
+
+Weighted average date (20 images):
+  Date:   2024-03-04
+  Epoch:  2024.1740 +/- 0.5460 yr (199.4 days)
+  
+2023-09-18 NGC281
