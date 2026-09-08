@@ -1067,3 +1067,34 @@ Windows read-only attribute on the extracted file. Fixed in
 immediately before patching it, rather than trying to pin down (or
 patch around) whichever exact upstream tar entry/extraction step is
 responsible.
+
+**Third real CI run:** past both fixes above, wcslib's own `configure`
+and `make` actually ran for the first time -- and found a real bug in
+this workflow's own reasoning, not a new environment quirk. Several
+`.c` files failed identically:
+```
+In file included from fitshdr.c:10342:
+D:/a/_temp/msys64/mingw64/include/unistd.h:57:20: error: unknown type name 'off_t'; did you mean '_off_t'?
+ 57 | int ftruncate(int, off_t)
+```
+(same failure in `wcsbth.c`, `wcspih.c`, `wcsulex.c`, `wcsutrn.c` --
+all flex-generated files that pull in `<unistd.h>`). The workflow was
+passing `CPPFLAGS="-DNO_OLDNAMES"` to wcslib's own `configure`, on the
+theory (documented in release.yml's own comments at the time) that it
+was needed to suppress MinGW-w64's incompatible `wcsset` declaration so
+it wouldn't collide with wcslib's. That reasoning stopped being true
+the moment the `patch_wcslib_wcs_h.py` step was added earlier in this
+same job: that patch already renames wcslib's own declaration away from
+the plain `wcsset` identifier under MinGW, so nothing collides with
+MinGW's declaration regardless of NO_OLDNAMES -- meaning NO_OLDNAMES
+had already become dead weight, just not yet proven harmful. It turned
+out not to be harmless: NO_OLDNAMES also suppresses MinGW-w64's `off_t`
+alias (not just the ones affecting `pid_t`-needing consumers like Qt,
+already known from EpochFrom's own build), and wcslib's own `<unistd.h>`
+usage needs exactly that alias regardless of `--disable-utils` (a
+previous fix already correctly identified `utils/`'s own `fitshdr.c` as
+needing this, but missed that `C/`'s own same-named `fitshdr.c`, part of
+the base library and not covered by `--disable-utils`, has the same
+dependency). Fixed by simply dropping `-DNO_OLDNAMES` from wcslib's
+`configure` invocation entirely -- it was never actually doing anything
+useful once the header patch existed.

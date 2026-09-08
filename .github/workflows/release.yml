@@ -112,15 +112,26 @@ jobs:
       #      immediately before it's used sidesteps the whole broken probe
       #      chain rather than patching the probe itself, so this doesn't
       #      depend on matching autoconf's generated boilerplate exactly.
-      #   2. NO_OLDNAMES (in CPPFLAGS) suppresses MinGW-w64's own
-      #      MSVC-compatibility `wcsset` declaration so it doesn't collide
-      #      with wcslib's real one of the same name -- safe here, unlike
-      #      in EpochFrom's own source below, because wcslib's build
-      #      doesn't also need the pid_t/etc. typedefs NO_OLDNAMES gates.
+      #   2. No NO_OLDNAMES here (an earlier version of this workflow set
+      #      it in CPPFLAGS, on the theory that it was needed to suppress
+      #      MinGW-w64's own MSVC-compatibility `wcsset` declaration so it
+      #      wouldn't collide with wcslib's real one). Confirmed wrong, and
+      #      unnecessary, on a real CI run: the "Patch wcslib for MinGW"
+      #      step below already renames wcslib's own declaration away from
+      #      the plain `wcsset` identifier under MinGW (see that patch
+      #      script's docstring), so there's nothing left for either
+      #      declaration to collide with -- NO_OLDNAMES was never actually
+      #      doing anything useful here. Worse, it also suppresses other
+      #      MinGW-w64 POSIX-alias typedefs wcslib's own C/ library needs
+      #      regardless of --disable-utils: `off_t` in particular, which
+      #      MinGW's own <unistd.h> uses in its ftruncate()/truncate()
+      #      prototypes -- with NO_OLDNAMES set, those fail to compile with
+      #      "unknown type name 'off_t'", which is exactly what broke
+      #      C/fitshdr.c, C/wcsbth.c, C/wcspih.c, C/wcsulex.c and
+      #      C/wcsutrn.c (all flex-generated, all pulling in <unistd.h>) on
+      #      the run that caught this.
       #   3. --disable-fortran/--without-pgplot/--disable-utils: skip
-      #      optional pieces EpochFrom doesn't use, sidestepping their own
-      #      separate build issues (utils/'s fitshdr.c needs the very
-      #      POSIX-alias names NO_OLDNAMES just suppressed).
+      #      optional pieces EpochFrom doesn't use.
       #   4. --disable-shared: MinGW's `$(LN_S)` resolves to a plain `cp`,
       #      not `ln -s`, in this install's own build (confirmed a general
       #      MSYS2/MinGW behaviour, not project-specific) -- avoids the
@@ -174,13 +185,14 @@ jobs:
           # wcs.h's own wcsset()/MinGW collision -- see
           # scripts/ci/patch_wcslib_wcs_h.py's own docstring for the full
           # explanation of why this needs patching at all and why this
-          # specific fix (rather than NO_OLDNAMES) is the one that works.
+          # specific fix (rather than NO_OLDNAMES -- see fix 2 above) is
+          # the one that works.
           python3 "${{ github.workspace }}/EpochFrom/scripts/ci/patch_wcslib_wcs_h.py" C/wcs.h
 
       - name: Build and install wcslib
         working-directory: ${{ github.workspace }}/wcslib-${{ env.WCSLIB_VERSION }}
         run: |
-          CPPFLAGS="-DNO_OLDNAMES" ./configure --prefix=/mingw64 --disable-fortran \
+          ./configure --prefix=/mingw64 --disable-fortran \
               --without-pgplot --disable-utils --disable-shared
           make -j
           make install
