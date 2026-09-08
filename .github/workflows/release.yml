@@ -227,7 +227,6 @@ jobs:
       - name: Bundle Qt/runtime/cfitsio DLLs
         working-directory: ${{ github.workspace }}/dist/bin
         run: |
-          windeployqt.exe --release --compiler-runtime EpochFrom.exe
           windeployqt.exe --release --compiler-runtime EpochFrom-gui.exe
           windeployqt.exe --release --compiler-runtime EpochFrom-starfield.exe
           cp /mingw64/bin/libcfitsio*.dll .
