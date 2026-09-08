@@ -32,4 +32,4 @@ add_library(epoch_from_core STATIC
 )
 
 target_include_directories(epoch_from_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-target_link_libraries(epoch_from_core PUBLIC Qt6::Core Eigen3::Eigen PkgConfig::WCSLIB PkgConfig::CFITSIO)
+target_link_libraries(epoch_from_core PUBLIC Qt6::Core Eigen3::Eigen EpochFrom::WCSLIB EpochFrom::CFITSIO)

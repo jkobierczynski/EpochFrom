@@ -102,7 +102,16 @@ GaiaTab::GaiaTab(ProjectBar *projectBar, QWidget *parent) : QWidget(parent), pro
     fromProjectButton->setToolTip(
         tr("Use the project bar's base directory as this catalog's save location "
            "(shared across every filter -- the star field doesn't change with filter)"));
+    // "python3" is the right default everywhere EpochFrom has actually
+    // been run so far, but it's not what's on PATH on a stock Windows
+    // Python install -- that's "python" (or the "py" launcher), with
+    // "python3" typically absent entirely. Either way this is just the
+    // field's starting value; the user can always type over it.
+#if defined(Q_OS_WIN)
+    pythonPathEdit_ = new QLineEdit(QStringLiteral("python"));
+#else
     pythonPathEdit_ = new QLineEdit(QStringLiteral("python3"));
+#endif
     scriptPathEdit_ = new QLineEdit;
     scriptPathEdit_->setPlaceholderText(tr("auto-detected next to this application"));
     auto *browseScriptButton = new QPushButton(tr("Browse..."));

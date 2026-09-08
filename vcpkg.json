@@ -1,0 +1,10 @@
+{
+  "name": "epochfrom",
+  "version": "0.1.0",
+  "description": "Date astrophotography images by plate-solving and fitting Gaia DR3 proper motions.",
+  "dependencies": [
+    "qtbase",
+    "eigen3",
+    "cfitsio"
+  ]
+}

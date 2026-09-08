@@ -1,5 +1,21 @@
 find_package(Qt6 REQUIRED COMPONENTS Widgets)
 
+# Windows-only .rc resources: give the .exe *file itself* an icon (File
+# Explorer, a taskbar pin made before the app has ever run, a desktop
+# shortcut) -- separate from, and in addition to, the QApplication
+# window icon set in main.cpp/StarfieldStandaloneMain.cpp via AppIcon.h,
+# which already works cross-platform with no install step. See
+# packaging/windows/epochfrom-gui.rc's own comment for the distinction.
+# CMake compiles a target's own .rc source with the active toolchain's RC
+# compiler (rc.exe under MSVC, windres under MinGW) automatically; this is
+# a no-op everywhere else, since these variables stay empty off Windows.
+set(EPOCHFROM_GUI_WIN32_RC "")
+set(EPOCHFROM_STARFIELD_WIN32_RC "")
+if(WIN32)
+    set(EPOCHFROM_GUI_WIN32_RC "${CMAKE_SOURCE_DIR}/packaging/windows/epochfrom-gui.rc")
+    set(EPOCHFROM_STARFIELD_WIN32_RC "${CMAKE_SOURCE_DIR}/packaging/windows/epochfrom-starfield.rc")
+endif()
+
 add_executable(epoch_from_gui
     main.cpp
     MainWindow.h
@@ -32,6 +48,7 @@ add_executable(epoch_from_gui
     FitsDirScan.h
     AppIcon.h
     resources/icon.qrc
+    ${EPOCHFROM_GUI_WIN32_RC}
 )
 set_target_properties(epoch_from_gui PROPERTIES OUTPUT_NAME EpochFrom-gui)
 target_link_libraries(epoch_from_gui PRIVATE epoch_from_core Qt6::Widgets)
@@ -55,6 +72,7 @@ add_executable(epoch_from_starfield
     TabLayoutHelpers.h
     AppIcon.h
     resources/icon.qrc
+    ${EPOCHFROM_STARFIELD_WIN32_RC}
 )
 set_target_properties(epoch_from_starfield PROPERTIES OUTPUT_NAME EpochFrom-starfield)
 target_link_libraries(epoch_from_starfield PRIVATE epoch_from_core Qt6::Widgets)

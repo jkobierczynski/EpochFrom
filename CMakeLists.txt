@@ -25,36 +25,7 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
 endif()
 
 find_package(Qt6 REQUIRED COMPONENTS Core)
-# Confirmed on a real Debian build: Eigen's own generated
-# Eigen3ConfigVersion.cmake has a long-standing bug in its custom version
-# check -- CMake's find_package() version-RANGE syntax ("3.3...5.0") is
-# rejected outright by that script even against a real, plainly-compatible
-# installed version (Debian's system Eigen3Config.cmake reports 3.4.0,
-# "considered but not accepted" for this exact range). Two independent
-# upstream reports confirm the same failure and the same fix: ranges don't
-# work through Eigen's ConfigVersion script at all, but two ordinary,
-# non-range find_package() calls do, because that's the well-tested code
-# path through the same script.
-# https://gitlab.com/libeigen/eigen/-/issues/2972
-# https://gitlab.com/libeigen/eigen/-/issues/2994
-# A bare minimum-version request was avoided here for a reason, though:
-# vcpkg's eigen3 port jumped to the real, deliberate Eigen 5.0 release, whose
-# ConfigVersion script uses a same-major-version compatibility check -- a
-# bare "3.3" request rejects 5.0.1 outright ("version found is not
-# compatible") even though nothing here actually needs anything 3.3 added
-# over 5.0. So: try 3.3 first (matches any real-world 3.x install, Debian's
-# 3.4.0 included) and only fall back to asking for 5.0 outright if that
-# wasn't found (matches vcpkg's Eigen 5.0 port via its own same-major
-# check). C++17 (already required above) satisfies Eigen 5.0's own minimum.
-# Eigen 5.0's breaking changes are narrow and don't touch ordinary
-# matrix/vector/solver usage -- watch for them specifically if a future
-# compile error mentions Eigen::all/last (moved to
-# Eigen::placeholders::all/last) or a runtime (rather than compile-time
-# template) SVD ComputeThinU/ComputeFullV option.
-find_package(Eigen3 3.3 QUIET NO_MODULE)
-if(NOT Eigen3_FOUND)
-    find_package(Eigen3 5.0 REQUIRED NO_MODULE)
-endif()
+find_package(Eigen3 3.3 REQUIRED NO_MODULE)
 
 # wcslib and cfitsio, resolved into two OS-agnostic targets --
 # EpochFrom::WCSLIB and EpochFrom::CFITSIO -- that the rest of the build
@@ -80,40 +51,15 @@ set(EPOCHFROM_CFITSIO_FOUND FALSE)
 
 find_package(PkgConfig)
 if(PkgConfig_FOUND)
-    # Deliberately NOT using pkg_check_modules(... IMPORTED_TARGET ...)
-    # here. Confirmed on a real MSYS2/MinGW CI run: MSYS2-packaged .pc
-    # files (cfitsio's included, and by the same mechanism wcslib's own,
-    # since it's `./configure --prefix=/mingw64`d the same way) carry a
-    # literal, unresolved "/mingw64" prefix -- pkg-config only does
-    # textual substitution, it doesn't resolve paths. MinGW-w64 GCC itself
-    # is built relocatable and resolves that token correctly at actual
-    # compile time, regardless of where MSYS2 is really installed (it
-    # isn't literally at "\mingw64" on GitHub's own runners, e.g.
-    # "D:\a\_temp\msys64\mingw64" here), matching an identical symptom
-    # reported for an unrelated project:
-    # https://github.com/msys2/MSYS2-packages/issues/1619
-    # But CMake's own *IMPORTED*-target machinery separately, strictly
-    # validates that every INTERFACE_INCLUDE_DIRECTORIES path really
-    # exists as a literal path on disk -- which "/mingw64/include" isn't,
-    # from CMake's point of view, on exactly this kind of install. A
-    # *non*-imported target isn't subject to that check at all, so using
-    # pkg_check_modules()'s plain result variables (still populated
-    # without IMPORTED_TARGET) plus a hand-built INTERFACE library
-    # sidesteps the whole problem -- the compiler still gets the exact
-    # same "-I/mingw64/..." flag it already knows how to resolve.
-    pkg_check_modules(WCSLIB wcslib)
+    pkg_check_modules(WCSLIB IMPORTED_TARGET wcslib)
     if(WCSLIB_FOUND)
-        add_library(EpochFrom::WCSLIB INTERFACE)
-        target_include_directories(EpochFrom::WCSLIB INTERFACE ${WCSLIB_INCLUDE_DIRS})
-        target_link_options(EpochFrom::WCSLIB INTERFACE ${WCSLIB_LDFLAGS})
+        add_library(EpochFrom::WCSLIB ALIAS PkgConfig::WCSLIB)
         set(EPOCHFROM_WCSLIB_FOUND TRUE)
     endif()
 
-    pkg_check_modules(CFITSIO cfitsio)
+    pkg_check_modules(CFITSIO IMPORTED_TARGET cfitsio)
     if(CFITSIO_FOUND)
-        add_library(EpochFrom::CFITSIO INTERFACE)
-        target_include_directories(EpochFrom::CFITSIO INTERFACE ${CFITSIO_INCLUDE_DIRS})
-        target_link_options(EpochFrom::CFITSIO INTERFACE ${CFITSIO_LDFLAGS})
+        add_library(EpochFrom::CFITSIO ALIAS PkgConfig::CFITSIO)
         set(EPOCHFROM_CFITSIO_FOUND TRUE)
     endif()
 endif()
@@ -128,21 +74,9 @@ endif()
 
 if(NOT EPOCHFROM_CFITSIO_FOUND)
     find_package(CFITSIO CONFIG QUIET)
-    # Confirmed against the actual vcpkg port in use (cfitsio 4.7.0): its
-    # upstream CMakeLists.txt sets LIB_NAME to the unnamespaced `cfitsio`
-    # but exports it via `install(EXPORT cfitsioTargets NAMESPACE CFITSIO::
-    # ...)`, so the real target is `CFITSIO::cfitsio` -- matching neither
-    # of the two guesses this file previously made (see docs/windows-port.md
-    # for the "needs confirming" note this resolves; a real MSVC/vcpkg build
-    # got CFITSIO_DIR set correctly by find_package() above, proving the
-    # config was located, while both TARGET checks below still failed).
-    # Checked first since it's the one now confirmed current; the other two
-    # stay as fallbacks in case a different vcpkg/registry snapshot ever
-    # exports it differently again.
-    if(TARGET CFITSIO::cfitsio)
-        add_library(EpochFrom::CFITSIO ALIAS CFITSIO::cfitsio)
-        set(EPOCHFROM_CFITSIO_FOUND TRUE)
-    elseif(TARGET cfitsio)
+    if(TARGET cfitsio)
+        # vcpkg's cfitsio port (where present) has historically exported a
+        # plain, unnamespaced `cfitsio` target rather than `CFITSIO::CFITSIO`.
         add_library(EpochFrom::CFITSIO ALIAS cfitsio)
         set(EPOCHFROM_CFITSIO_FOUND TRUE)
     elseif(TARGET CFITSIO::CFITSIO)
