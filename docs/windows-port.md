@@ -63,16 +63,21 @@ way, and MSYS2's package repo already has most of what's needed:
 
 ```
 pacman -S mingw-w64-x86_64-qt6-base mingw-w64-x86_64-eigen3 \
-          mingw-w64-x86_64-cfitsio mingw-w64-x86_64-cmake \
-          mingw-w64-x86_64-pkgconf mingw-w64-x86_64-toolchain
+          mingw-w64-x86_64-cfitsio mingw-w64-x86_64-wcslib \
+          mingw-w64-x86_64-cmake mingw-w64-x86_64-pkgconf \
+          mingw-w64-x86_64-toolchain
 ```
 
-**wcslib is not packaged in MSYS2** as far as this pass could confirm --
-it needs building from source (autotools, `./configure --prefix=<mingw
-prefix> && make && make install`) into the same MSYS2 prefix so its
-`wcslib.pc` ends up somewhere pkg-config already searches. This is the
-single biggest unknown in the MinGW path and needs a real attempt to
-pin down.
+**Update:** wcslib *is* packaged in MSYS2 (confirmed against a real CI run:
+`mingw-w64-x86_64-wcslib` resolves via pkg-config, version 8.9) -- the
+original note here saying otherwise was wrong; no from-source build needed
+after all. What that same CI run did surface: MSYS2's `cfitsio.pc` embeds a
+literal `prefix=/mingw64` (a path only meaningful inside the MSYS2
+runtime's own translation layer), which a native `cmake.exe` takes
+literally and fails to resolve -- `CMakeLists.txt` now rewrites that to the
+real MinGW root itself (derived from the active compiler's location) right
+after pkg-config hands the target back, so this shouldn't need any special
+handling from you.
 
 ### MSVC + vcpkg
 
@@ -149,8 +154,8 @@ fix) is unverified.
 
 ## What to actually do first
 
-Pick one toolchain (MSYS2/MinGW is probably the smaller first step, since
-its pkg-config path most closely mirrors what already works on Linux) and
-try a configure. The wcslib build-from-source step is very likely where
-it first breaks -- that's the one piece of this with no existing recipe
-at all.
+MSYS2/MinGW is confirmed to get through configure now (Qt6, Eigen3,
+wcslib, and cfitsio all resolve via pkg-config on a real CI run, once the
+Eigen version pin and the cfitsio `/mingw64` path issue above were fixed).
+MSVC/vcpkg is still unattempted -- wcslib's lack of a vcpkg port remains
+the biggest open unknown there.

@@ -393,6 +393,12 @@ PlateSolveResult PlateSolver::solve(const QString &imagePath, const PlateSolveOp
     const QString setsidPath = QStandardPaths::findExecutable("setsid");
     const bool killWholeGroup = !setsidPath.isEmpty();
 #else
+    // Not used on this platform (killWholeGroup is always false below), but
+    // still has to exist: the setProgram(setsidPath) call a few lines down
+    // is ordinary (non-preprocessor) code shared by every platform, so it
+    // needs *a* declaration in scope to compile even though it's never
+    // reached here.
+    const QString setsidPath;
     const bool killWholeGroup = false;
 #endif
 
