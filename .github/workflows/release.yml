@@ -229,8 +229,9 @@ jobs:
         run: |
           windeployqt.exe --release --compiler-runtime EpochFrom-gui.exe
           windeployqt.exe --release --compiler-runtime EpochFrom-starfield.exe
-          cp /mingw64/bin/libwinpthread-1.dll .
-          cp /mingw64/bin/libcfitsio*.dll .
+          for exe in EpochFrom-gui.exe EpochFrom-starfield.exe; do
+            ldd "$exe" | grep -i '/mingw64/bin/' | awk '{print $3}'
+            done | sort -u | xargs -I{} cp -n {} .
 
       # A plain PowerShell step, not MSYS2 (overriding the job's default
       # shell): Compress-Archive is guaranteed present on the runner

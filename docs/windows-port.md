@@ -152,16 +152,34 @@ line) -- rather than keep guessing at MinGW/CMake link-line ordering with
 no MinGW toolchain available to test against, the practical fix is to just
 copy it, the same way the deploy step already has to for cfitsio (wcslib
 itself turned out to be static-only on MSYS2, per real CI output, so
-nothing to copy there):
+nothing to copy there).
 
-```
-cp /mingw64/bin/libwinpthread-1.dll .
-cp /mingw64/bin/libcfitsio*.dll .
+**Copying DLLs by hand one missing-DLL-dialog at a time doesn't scale --
+confirmed on a real run: after libwinpthread and cfitsio, the next missing
+one was libcurl-4.dll**, because MSYS2's cfitsio is built with libcurl
+support (for fetching remote FITS URLs -- unused by EpochFrom, but linked
+in regardless), and libcurl itself commonly pulls in its own chain of
+dependencies (TLS, compression, IDN, and so on -- however many of those
+MSYS2's libcurl build actually needs, which isn't worth enumerating by
+hand). The reliable fix is to resolve the whole dependency tree at once
+with `ldd` (available in the MSYS2 shell) instead of adding one `cp` line
+per CI failure:
+
+```bash
+# Run from the directory windeployqt already populated, after building
+# both executables. Copies every MinGW-provided DLL either one actually
+# needs, transitively -- not just Qt's own, which windeployqt already
+# handled.
+for exe in EpochFrom-gui.exe EpochFrom-starfield.exe; do
+    ldd "$exe" | grep -i '/mingw64/bin/' | awk '{print $3}'
+done | sort -u | xargs -I{} cp -n {} .
 ```
 
-If a future MSYS2/Qt update makes cfitsio or Qt itself pull in
-`libgcc_s_seh-1.dll`/`libstdc++-6.dll` again despite the static-link flags,
-the same `cp` pattern from `/mingw64/bin/` covers those too.
+`ldd` walks the *actual* runtime dependency graph the way the Windows
+loader will, so this covers whatever libcurl (or anything else) needs
+without guessing -- and stays correct if that dependency set changes on a
+future MSYS2 update. `-n` (no-clobber) skips files already copied (Qt's
+own DLLs, already placed by `windeployqt`).
 
 ## Known limitations even once it builds
 
