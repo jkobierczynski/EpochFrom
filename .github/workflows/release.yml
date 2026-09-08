@@ -230,7 +230,6 @@ jobs:
           windeployqt.exe --release --compiler-runtime EpochFrom-gui.exe
           windeployqt.exe --release --compiler-runtime EpochFrom-starfield.exe
           cp /mingw64/bin/libcfitsio*.dll .
-          cp /mingw64/bin/libwcs*.dll .
 
       # A plain PowerShell step, not MSYS2 (overriding the job's default
       # shell): Compress-Archive is guaranteed present on the runner
