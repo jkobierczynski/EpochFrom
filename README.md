@@ -9,11 +9,10 @@ own optical distortion (a SIP-style polynomial, self-calibrated against
 Gaia) so that distortion can be corrected rather than mistaken for
 proper-motion signal.
 
-Built Linux first, Qt/C++. Groundwork for a Windows build (CMake dependency
-resolution for both MSYS2/MinGW and MSVC/vcpkg, `.exe` icon resources, a
-portable Python-interpreter default) is in place but not yet compiled or
-tested on a real Windows machine — see [`docs/windows-port.md`](docs/windows-port.md)
-for exact status and what a first build attempt still needs to figure out.
+Built Linux first, Qt/C++. Also builds and runs on Windows via MSYS2/MinGW
+(confirmed on a real machine, CI-built) — see
+[`docs/windows-port.md`](docs/windows-port.md) for the toolchain setup,
+deploy steps, and what's still unverified (MSVC/vcpkg support is in the
 CMake but untested; plate-solving needs a separately-installed local
 solver such as ANSVR, since astrometry.net's own `solve-field` has no
 native Windows build).

@@ -160,20 +160,44 @@ The next issue that surfaced once solve-field could actually start:
 ansvr bundles an older astrometry.net build that doesn't recognize the
 `--temp-axy` flag (`solve-field: unknown option -- temp-axy`) --
 `PlateSolver::solve()` used to pass that to keep its intermediate `.axy`
-file out of the image's directory. Fixed in `PlateSolver.cpp`: it now
-passes `--axy <temp path>` instead (supported by astrometry.net builds
-going back much further than `--temp-axy` itself) and deletes that file
-itself once solve-field exits, on every code path. Verified against this
-repo's own Linux build (9/9 tests still pass) -- **not yet confirmed
+file out of the image's directory. First fix attempt (`--axy <temp
+path>`, on the assumption that flag predates `--temp-axy`) turned out
+wrong too -- same ansvr build rejected that one as well ("unknown option
+-- axy"), confirmed via real use. Rather than keep guessing at this
+particular build's exact flag vocabulary blind, `PlateSolver::solve()`
+now passes **no** `.axy`-related flag at all: every astrometry.net build,
+however old, writes its intermediate axy file to a plain, flag-free
+default location (`<base>.axy`, right beside the image) -- EpochFrom just
+deletes that file itself once solve-field exits, on every code path,
+instead of asking solve-field to redirect it anywhere. Verified against
+this repo's own Linux build (9/9 tests still pass) -- **not yet confirmed
 against a real ansvr solve**, since that requires an actual solve to run
 to completion, which is the next thing to try.
 
-Beyond those two, whether ansvr's `solve-field` accepts the rest of the
-flags `PlateSolver::solve()` passes (`--ra`/`--dec`, `--scale-low`/
+Beyond that, whether ansvr's `solve-field` accepts the rest of the flags
+`PlateSolver::solve()` passes (`--ra`/`--dec`, `--scale-low`/
 `--scale-high`, `--downsample`, `--cpulimit`, the other
 byproduct-suppression flags) is still unverified -- each one so far has
 surfaced as its own distinct error once the previous one was fixed, so
-more of the same is possible.
+more of the same is possible. If another "unknown option" turns up,
+pasting this build's own `solve-field --help` output (via the wrapper --
+`ansvr-solve-field.bat --help`) would settle its exact supported flag set
+in one step rather than continuing to find out by trial and error.
+
+**Getting `ansvr-solve-field.bat` into a built package:** it lives in the
+repo at `packaging/windows/`, not in `dist/bin` -- nothing in the CMake
+build or a from-scratch CI workflow copies it there automatically yet
+(unlike the `.rc`/`.ico` resources, which *are* wired into the build).
+Until that's added to the build, add one line copying it alongside the
+`.exe`s in whatever CI step already copies the MinGW/cfitsio DLLs (see
+the next section below), e.g.:
+
+```bash
+cp "$GITHUB_WORKSPACE/packaging/windows/ansvr-solve-field.bat" .
+```
+
+or, building locally, just copy it into the same folder as
+`EpochFrom-gui.exe` by hand.
 
 ## Deploying a MinGW build: DLLs windeployqt doesn't know about
 

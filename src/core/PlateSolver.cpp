@@ -375,10 +375,12 @@ PlateSolveResult PlateSolver::solve(const QString &imagePath, const PlateSolveOp
     const QDir dir = imageInfo.dir();
     const QString wcsPath = dir.filePath(baseName + ".wcs");
     const QString solvedMarkerPath = dir.filePath(baseName + ".solved");
-    // See the --axy comment below: this is the temp axy path EpochFrom
-    // itself is responsible for deleting once solve-field exits, on every
-    // return path below that's reached after the process actually starts.
-    const QString axyPath = dir.filePath(baseName + ".epochfrom-axy.tmp");
+    // solve-field's own default axy output path (see the long comment
+    // below) -- not passed as a flag at all, deliberately; this is just
+    // EpochFrom precomputing where solve-field is going to put it so it
+    // can delete that file itself once solve-field exits, on every return
+    // path below that's reached after the process actually starts.
+    const QString axyPath = dir.filePath(baseName + ".axy");
 
     QStringList args;
     args << "--no-plots" << "--overwrite";
@@ -394,16 +396,18 @@ PlateSolveResult PlateSolver::solve(const QString &imagePath, const PlateSolveOp
     // (wcsPath below, which IS kept -- readWcsFile() reads it) and only
     // ever touches the original FITS header when the caller explicitly
     // opts into that via updateFitsHeader/writeWcsIntoFits, so none of
-    // these are wanted: point --axy at a real temp file and delete it
-    // ourselves after the process exits (below), rather than relying on
-    // astrometry.net's own --temp-axy flag, which does the same thing but
-    // isn't recognized by every solve-field build in the wild -- confirmed
-    // via real use: ansvr's bundled (older) astrometry.net rejects it
-    // outright with "unknown option -- temp-axy". --axy itself has been
-    // supported since long before that, so this is the portable choice;
-    // "none" isn't a valid value for --axy the way it is for the others
-    // below, hence the temp path instead. Disable the rest outright.
-    args << "--axy" << axyPath;
+    // these are wanted -- EXCEPT .axy has turned out to need different
+    // handling than the rest. Both of solve-field's own ways to redirect
+    // or suppress it (--temp-axy, then --axy <path> when that one turned
+    // out unsupported) were rejected outright by ansvr's older bundled
+    // astrometry.net build ("unknown option -- temp-axy", then "unknown
+    // option -- axy") -- confirmed via real use, twice. Rather than guess
+    // at a third flag spelling blind, don't pass anything for .axy at
+    // all: every astrometry.net build, however old, writes it to its
+    // plain default location (<base>.axy, right beside the image) with
+    // zero flags required, so EpochFrom just deletes that file itself
+    // afterward (below) instead of asking solve-field to redirect it.
+    // Disable the rest outright -- "none" *is* a valid value for these.
     args << "--new-fits" << "none";
     args << "--rdls" << "none";
     args << "--match" << "none";
