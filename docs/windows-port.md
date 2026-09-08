@@ -1042,3 +1042,28 @@ same way, but that's inferred from how the option is documented to
 work, not confirmed against a second real failure. Worth watching the
 next run's "Fetch wcslib source" step output specifically, even though
 it's expected to pass now.
+
+**Second real CI run:** `winsymlinks:lnk` worked -- "Fetch wcslib
+source" passed cleanly this time, confirming the fix above and moving
+the failure further down the pipeline, to "Patch wcslib for MinGW":
+```
+Traceback (most recent call last):
+  ...
+  File ".../scripts/ci/patch_wcslib_wcs_h.py", line 70, in main
+    path.write_text(text.replace(old, new, 1))
+  ...
+PermissionError: [Errno 13] Permission denied: 'C/wcs.h'
+```
+Telling detail: `path.read_text()` earlier in the same function had
+already succeeded (the script got as far as counting matches and
+printing nothing about a read failure) -- only the `write_text()`
+call was denied. That split (readable, not writable) is the signature
+of the file coming out of extraction with the Windows read-only
+attribute set, not a missing-file or bad-path problem. wcslib's
+release tarball apparently ships `C/wcs.h` without the owner-write
+permission bit, and MSYS2's `tar` carries that straight over into a
+Windows read-only attribute on the extracted file. Fixed in
+`patch_wcslib_wcs_h.py` itself by `chmod`-ing the file owner-writable
+immediately before patching it, rather than trying to pin down (or
+patch around) whichever exact upstream tar entry/extraction step is
+responsible.

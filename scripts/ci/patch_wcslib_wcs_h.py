@@ -28,10 +28,20 @@ Idempotent: safe to run against an already-patched wcs.h (does nothing,
 successfully) so a re-run of the workflow, or a locally cached wcslib
 checkout, doesn't fail on a second pass.
 
+Confirmed on a real run of this workflow: the freshly-extracted wcs.h can
+come out with the Windows read-only attribute set (read_text() succeeds,
+then write_text() fails with "PermissionError: [Errno 13] Permission
+denied") -- wcslib's release tarball apparently ships this file without
+the owner-write permission bit, which MSYS2's tar extraction carries over
+as the Windows read-only attribute. Rather than pin down which upstream
+tar entry/extraction step is exactly responsible, this script just makes
+sure the file is owner-writable immediately before patching it.
+
 Usage: patch_wcslib_wcs_h.py <path-to-wcslib's-C/wcs.h>
 """
 
 import pathlib
+import stat
 import sys
 
 
@@ -67,6 +77,9 @@ def main() -> int:
         )
         return 1
 
+    # Clear the read-only attribute (if set) before writing -- see the
+    # module docstring for why this is needed at all.
+    path.chmod(path.stat().st_mode | stat.S_IWUSR)
     path.write_text(text.replace(old, new, 1))
     print(f"{path}: patched for MinGW wcsset collision")
     return 0
