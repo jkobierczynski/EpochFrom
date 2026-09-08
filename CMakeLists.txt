@@ -28,15 +28,24 @@ endif()
 # Windows): MinGW links against its own runtime as shared DLLs by default
 # (libgcc_s_seh-1.dll, libstdc++-6.dll, libwinpthread-1.dll) -- windeployqt
 # only knows about Qt's own dependencies, not the toolchain's, so it never
-# copies these, and the .exe fails to start ("libgcc_s_seh-1.dll was not
-# found") anywhere they aren't already on PATH (i.e. everywhere outside an
-# MSYS2 shell). Statically linking them in is the standard fix for exactly
-# this MinGW+Qt deployment gap -- applies to every target below, Qt's own
-# DLLs (brought in via windeployqt) and wcslib/cfitsio's are unaffected,
-# since those are still linked as the shared libraries their find_package()/
-# pkg-config imported targets specify.
+# copies these, and the .exe fails to start (missing-DLL errors) anywhere
+# they aren't already on PATH (i.e. everywhere outside an MSYS2 shell).
+# -static-libgcc/-static-libstdc++ fixed the first two (confirmed); plain
+# "-static -lwinpthread" after them did NOT reliably force libwinpthread
+# static too (also confirmed -- still missing on a real run), a known
+# MinGW/CMake link-line-ordering gotcha. Forcing it explicitly with
+# -Wl,-Bstatic/--whole-archive, then reverting to -Bdynamic before anything
+# else links, is the more reliable form. Applies to every target below;
+# Qt's own DLLs (brought in via windeployqt) and wcslib/cfitsio's are
+# unaffected, since those still come from their find_package()/pkg-config
+# imported targets, linked after -Bdynamic is restored.
 if(MINGW)
-    add_link_options(-static-libgcc -static-libstdc++ -static -lwinpthread)
+    add_link_options(
+        -static-libgcc
+        -static-libstdc++
+        -Wl,-Bstatic,--whole-archive -lwinpthread -Wl,--no-whole-archive
+        -Wl,-Bdynamic
+    )
 endif()
 
 find_package(Qt6 REQUIRED COMPONENTS Core)
