@@ -80,15 +80,40 @@ set(EPOCHFROM_CFITSIO_FOUND FALSE)
 
 find_package(PkgConfig)
 if(PkgConfig_FOUND)
-    pkg_check_modules(WCSLIB IMPORTED_TARGET wcslib)
+    # Deliberately NOT using pkg_check_modules(... IMPORTED_TARGET ...)
+    # here. Confirmed on a real MSYS2/MinGW CI run: MSYS2-packaged .pc
+    # files (cfitsio's included, and by the same mechanism wcslib's own,
+    # since it's `./configure --prefix=/mingw64`d the same way) carry a
+    # literal, unresolved "/mingw64" prefix -- pkg-config only does
+    # textual substitution, it doesn't resolve paths. MinGW-w64 GCC itself
+    # is built relocatable and resolves that token correctly at actual
+    # compile time, regardless of where MSYS2 is really installed (it
+    # isn't literally at "\mingw64" on GitHub's own runners, e.g.
+    # "D:\a\_temp\msys64\mingw64" here), matching an identical symptom
+    # reported for an unrelated project:
+    # https://github.com/msys2/MSYS2-packages/issues/1619
+    # But CMake's own *IMPORTED*-target machinery separately, strictly
+    # validates that every INTERFACE_INCLUDE_DIRECTORIES path really
+    # exists as a literal path on disk -- which "/mingw64/include" isn't,
+    # from CMake's point of view, on exactly this kind of install. A
+    # *non*-imported target isn't subject to that check at all, so using
+    # pkg_check_modules()'s plain result variables (still populated
+    # without IMPORTED_TARGET) plus a hand-built INTERFACE library
+    # sidesteps the whole problem -- the compiler still gets the exact
+    # same "-I/mingw64/..." flag it already knows how to resolve.
+    pkg_check_modules(WCSLIB wcslib)
     if(WCSLIB_FOUND)
-        add_library(EpochFrom::WCSLIB ALIAS PkgConfig::WCSLIB)
+        add_library(EpochFrom::WCSLIB INTERFACE)
+        target_include_directories(EpochFrom::WCSLIB INTERFACE ${WCSLIB_INCLUDE_DIRS})
+        target_link_options(EpochFrom::WCSLIB INTERFACE ${WCSLIB_LDFLAGS})
         set(EPOCHFROM_WCSLIB_FOUND TRUE)
     endif()
 
-    pkg_check_modules(CFITSIO IMPORTED_TARGET cfitsio)
+    pkg_check_modules(CFITSIO cfitsio)
     if(CFITSIO_FOUND)
-        add_library(EpochFrom::CFITSIO ALIAS PkgConfig::CFITSIO)
+        add_library(EpochFrom::CFITSIO INTERFACE)
+        target_include_directories(EpochFrom::CFITSIO INTERFACE ${CFITSIO_INCLUDE_DIRS})
+        target_link_options(EpochFrom::CFITSIO INTERFACE ${CFITSIO_LDFLAGS})
         set(EPOCHFROM_CFITSIO_FOUND TRUE)
     endif()
 endif()

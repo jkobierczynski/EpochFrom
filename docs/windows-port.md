@@ -1098,3 +1098,42 @@ the base library and not covered by `--disable-utils`, has the same
 dependency). Fixed by simply dropping `-DNO_OLDNAMES` from wcslib's
 `configure` invocation entirely -- it was never actually doing anything
 useful once the header patch existed.
+
+**Fourth real CI run:** wcslib's own build finally succeeded outright
+(`configure`/`make`/`make install` all clean -- confirmed by CMake's own
+`pkg-config` step immediately after finding it: "Found wcslib, version
+8.9"). The next failure moved to EpochFrom's own top-level
+`CMakeLists.txt`, configuring against the freshly-installed wcslib and
+cfitsio:
+```
+-- Checking for module 'cfitsio'
+-- Found cfitsio, version 4.7.0
+-- Configuring done (2.4s)
+CMake Error in src/core/CMakeLists.txt:
+  Imported target "PkgConfig::CFITSIO" includes non-existent path
+  "/mingw64/include"
+  in its INTERFACE_INCLUDE_DIRECTORIES.
+```
+Real, independently-confirmed CMake/MSYS2 interaction, not specific to
+this project or to cfitsio specifically:
+[msys2/MSYS2-packages#1619](https://github.com/msys2/MSYS2-packages/issues/1619)
+reports the identical symptom ("nonexistent directory '/mingw64/include'")
+for a completely unrelated library (GLFW). MSYS2-packaged `.pc` files
+carry a literal, unresolved `/mingw64` prefix -- pkg-config just does
+textual substitution, not path resolution -- and MinGW-w64 GCC itself,
+built relocatable, correctly resolves that token at actual compile time
+regardless of where MSYS2 is really installed (e.g.
+`D:\a\_temp\msys64\mingw64` on this runner, not literally `\mingw64`).
+But CMake's own *IMPORTED*-target machinery separately, strictly
+validates every `INTERFACE_INCLUDE_DIRECTORIES` path for real existence
+on disk -- which "/mingw64/include" fails, from CMake's point of view,
+even though the compiler would have resolved it fine. Only `cfitsio`
+happened to surface it on this run (`wcslib`'s own pkg-config module
+wasn't yet flagged, though it's built the exact same way and is a
+reasonable bet to hit the identical problem on a future run once
+`cfitsio`'s is fixed). Fixed in the top-level `CMakeLists.txt` by no
+longer using `pkg_check_modules(... IMPORTED_TARGET ...)` for either
+library -- a *non*-imported hand-built `INTERFACE` library, fed from
+pkg-config's plain (still populated, un-validated) result variables,
+sidesteps CMake's existence check entirely while still handing the
+compiler the exact same flags it already knows how to resolve.
