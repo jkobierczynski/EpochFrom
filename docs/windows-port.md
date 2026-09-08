@@ -269,12 +269,176 @@ Cygwin installation a fresh, non-conflicting base address:
 3. In that `ash` shell: `/bin/rebaseall -v`
 4. Close `ash`, then try solving again.
 
-This hasn't been verified against a real ansvr install yet (no ansvr
-installation available to this pass), so treat it as the documented
-standard fix for this exact Cygwin error, not as EpochFrom-specific
-confirmation -- if it doesn't resolve it, the next thing to suspect is
-antivirus/EDR software actively injecting DLLs into every new process on
-that machine, which can make the conflict recur even after a rebase.
+**Confirmed on a real ansvr install** -- with one real-world wrinkle:
+`rebaseall` kept refusing ("only ash or dash processes are allowed"),
+including immediately after a full reboot, which ruled out an ordinary
+leftover handle. Cause: ansvr registers its own background server,
+`start_ansvr.bat`, to auto-launch at Windows login (ansvr can run as a
+persistent local HTTP solver, not just be invoked one-shot the way
+EpochFrom's wrapper uses it) -- that recreated a live Cygwin process
+before `ash` was ever run, on every boot. Fix: **Task Manager -> Startup
+tab**, find the `ansvr` entry, disable it. EpochFrom never needs ansvr's
+background server (it always invokes `solve-field` directly through the
+wrapper), so leaving that startup entry disabled permanently is fine --
+once it's gone, `rebaseall` runs cleanly. If a fork failure ever comes
+back after this, antivirus/EDR software injecting a DLL into every new
+process is the next thing to suspect.
+
+## ansvr / Cygwin FAQ
+
+Everything above this point tells the story of how each of these was
+found; this is the fast lookup for someone hitting one of them fresh.
+All of it is specific to ansvr's particular (old) Cygwin-based build --
+none of it is EpochFrom-specific beyond the fixes already shipped in this
+repo.
+
+**"failed to start '...' -- is astrometry.net installed and on PATH?"
+even though ansvr is installed and the path looks right.**
+`solve-field` is astrometry.net's own upstream Perl script, not a
+compiled `.exe` -- Windows' `CreateProcess` (what Qt's `QProcess` uses)
+can't launch a Perl-shebang script directly, no matter how correct the
+path to it is. Point EpochFrom's "solve-field path" setting at
+[`packaging/windows/ansvr-solve-field.bat`](../packaging/windows/ansvr-solve-field.bat)
+instead of at `solve-field` itself -- it routes the call through
+Cygwin's own `bash.exe`, which is what actually works. Confirmed on a
+real ansvr install.
+
+**`solve-field: unknown option -- temp-axy` or `unknown option --
+axy`.** ansvr bundles an old astrometry.net build that rejects both of
+solve-field's own ways to redirect its intermediate `.axy` file.
+Already fixed in this repo's `PlateSolver.cpp` (as of the commit that
+removed the `--axy` flag entirely, letting solve-field use its
+plain, flag-free default location and deleting that file itself
+afterward) -- if you're still seeing this, you're running an `.exe`
+built before that fix landed; grab a current build.
+
+**An image path with a space in it gets silently truncated (solve-field
+reports reading a nonsense partial filename).** Bug in an earlier
+version of `ansvr-solve-field.bat`: splicing `%*` straight into an
+already-quoted `bash -c "solve-field %*"` string gets parsed twice
+(once by Windows building `bash.exe`'s command line, again by bash's own
+`-c` word-splitting), and a space-containing argument doesn't survive
+both passes intact. Fixed in the current version of the script (passes
+arguments as `bash -c`'s own trailing arguments, forwarded verbatim via
+`"$@"`, instead of splicing them into the script text) -- if you're
+still hitting this, make sure you have the current `.bat`, not a copy
+made before this fix.
+
+**`ansvr-solve-field.bat` isn't in your downloaded/built Windows
+package.** Nothing in the CMake build or a from-scratch CI workflow
+copies it into `dist/bin` automatically yet. Add a `cp` line to whatever
+CI step already bundles the MinGW/cfitsio DLLs, or just copy it next to
+`EpochFrom-gui.exe` by hand -- see "Getting `ansvr-solve-field.bat` into
+a built package" above.
+
+**A CI `cp` step for `ansvr-solve-field.bat` fails with "No such file or
+directory" even though the file is definitely in the repo.** Almost
+always a path-translation issue in an MSYS2 shell step, not a missing
+file: `cygpath -u "$GITHUB_WORKSPACE"` (see above) fixes the common
+Windows-path/POSIX-path mixing case; if it still fails after that, check
+whether the job's `actions/checkout` step uses `with: path: <something>`
+-- that checks the repo out into a subdirectory, one level below what
+`$GITHUB_WORKSPACE` alone points at, which every path built from
+`$GITHUB_WORKSPACE` needs to account for.
+
+**`child_info_fork::abort: address space needed by '...dll' is already
+occupied`, or a Python `OSError: [Errno 11] Resource temporarily
+unavailable` from something in `astrometry/bin`.** A long-standing,
+well-known Cygwin issue (fork() emulation requires a DLL to remap at the
+exact same address in the child process as the parent held), not an
+EpochFrom bug. Fix: run `/bin/rebaseall -v` from
+`%LOCALAPPDATA%\cygwin_ansvr\bin\ash.exe` (not `bash.exe`) with every
+other ansvr/Cygwin process closed first, then retry the solve. See
+"ansvr's own Cygwin environment: fork failures" above for the full
+walkthrough.
+
+**`rebaseall` refuses with "only ash or dash processes are allowed
+during rebasing", but nothing obviously Cygwin-related is running --
+including right after a full reboot.** **Confirmed real-world cause:**
+ansvr registers its own background solver server, `start_ansvr.bat`, to
+auto-launch at Windows login -- that recreates a live Cygwin process
+before `ash` is ever run, on every single boot, which is exactly why
+rebooting alone doesn't clear it. Fix: **Task Manager -> Startup tab**,
+find the `ansvr` entry, disable it (EpochFrom never needs ansvr's
+background server -- it always invokes `solve-field` directly through
+the wrapper, so this is safe to leave disabled permanently). If you've
+already ruled that out and it's still refusing, the more general check
+is Resource Monitor (`resmon`) -> CPU tab -> Associated Handles, search
+for `cygwin1` -- that finds anything else system-wide still holding a
+handle to Cygwin's core runtime, whatever it's called.
+
+**`rebaseall` completed, but the same fork failure came right back.**
+Most likely antivirus/EDR software injecting its own DLL into every new
+process, which can reclaim the exact address Cygwin just freed before
+the next fork even happens. Try adding an exclusion for
+`%LOCALAPPDATA%\cygwin_ansvr` (or wherever ansvr is installed) in
+whatever antivirus is active.
+
+## Gaia tab: Python interpreter FAQ
+
+`EpochFrom-gui`'s Gaia tab shells out to `scripts/gaia_field_query.py`
+(see README's "Gaia data" section) via whatever's in its "Python
+interpreter" field, using `QProcess` -- same mechanism, same
+"single-program-path, not a shell command line" constraint, as
+`solveFieldPath` above. This is unrelated to ansvr/Cygwin; it's a
+completely separate external tool with its own setup.
+
+**What goes in the "Python interpreter" field?** The path to a Python 3
+executable that has `astropy` and `astroquery` installed. On Windows the
+field defaults to `python` (see `GaiaTab.cpp`), which works as-is if you
+have a stock python.org install with "Add python.exe to PATH" checked
+during setup. If not, or if you're managing Python some other way,
+you need the full path to a specific `python.exe` there instead.
+
+**Using [`uv`](https://docs.astral.sh/uv/) to manage Python?** A
+`uv`-installed standalone Python is a *directory*
+(`%APPDATA%\uv\python\`), not a single executable -- pointing the field
+at that directory itself fails (`QProcess` needs one concrete `.exe`).
+The actual interpreter is one level deeper, inside a version-specific
+subfolder, e.g.:
+
+```
+C:\Users\<you>\AppData\Roaming\uv\python\cpython-3.11.12-windows-x86_64-none\python.exe
+```
+
+Run `uv python find` in a terminal to print the exact current path
+rather than guessing the version-folder name by hand.
+
+**Installing `astropy`/`astroquery` into a `uv`-managed interpreter
+fails with "The interpreter ... is externally managed".** `uv` blocks
+installing packages directly into its own managed interpreters on
+purpose, so other `uv` tools/projects sharing that interpreter don't get
+their packages clobbered. Its own suggested fix is the right one -- make
+a dedicated virtual environment instead:
+
+```
+uv venv epochfrom-gaia-env --python 3.11.12
+uv pip install --python epochfrom-gaia-env\Scripts\python.exe astropy astroquery
+```
+
+(the `--python 3.11.12` pins it to a specific already-installed version
+via `uv`'s own resolution -- omit it to let `uv venv` pick a default).
+Note the path shape changes here: a `uv`-managed standalone install has
+`python.exe` directly inside its version folder, but a venv puts it
+under a `Scripts\` subfolder instead -- an ordinary Windows-venv detail,
+not a `uv` quirk. Point the Gaia tab's "Python interpreter" field at the
+venv's own `python.exe` (e.g.
+`C:\Users\<you>\epochfrom-gaia-env\Scripts\python.exe`), not the
+managed interpreter you started from -- that gives you a self-contained
+environment with `astropy`/`astroquery` installed, isolated from
+anything else `uv` manages.
+
+**"Couldn't start '...' -- check the Python interpreter path."** Exactly
+what it says -- `QProcess` couldn't launch whatever's in that field at
+all. Most often this means the path doesn't exist, is a directory rather
+than an executable (the `uv` case above), or a bare `python`/`python3`
+isn't actually on `PATH` the way the field's default assumes. Doesn't
+mean `astropy`/`astroquery` are missing -- that would fail differently,
+after the interpreter successfully starts (an `ImportError`/
+`ModuleNotFoundError` traceback in the Gaia tab's own log output,
+naming the missing package), so if you see that instead, it's the pip
+install into that specific interpreter that needs doing, not the path
+itself.
 
 ## Deploying a MinGW build: DLLs windeployqt doesn't know about
 
