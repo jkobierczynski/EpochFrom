@@ -20,6 +20,7 @@
 #include <QRadioButton>
 #include <QScrollArea>
 #include <QScrollBar>
+#include <QSettings>
 #include <QSpinBox>
 #include <QSplitter>
 #include <QThread>
@@ -118,6 +119,27 @@ SolveTab::SolveTab(ProjectBar *projectBar, QWidget *parent) : QWidget(parent), p
     if (!detectedAnsvrWrapper.isEmpty())
         solveFieldPathEdit_->setText(detectedAnsvrWrapper);
 #endif
+
+    // Remember whatever the user last set here (same QSettings-backed
+    // pattern GaiaTab uses for its own Python interpreter/script paths --
+    // see GaiaTab::GaiaTab()) -- once someone's pointed this at a real
+    // ansvr install (or any other non-default solve-field), that's a
+    // deliberate choice nobody wants to retype or re-browse-to on every
+    // launch. A saved value wins over both the hardcoded "solve-field"
+    // default and the Windows ansvr-wrapper auto-detection above, since it
+    // represents exactly that choice; auto-detection only ever matters the
+    // first time, before anything's been saved yet.
+    {
+        QSettings settings;
+        const QString savedSolveFieldPath =
+            settings.value(QStringLiteral("Solve/SolveFieldPath")).toString();
+        if (!savedSolveFieldPath.isEmpty())
+            solveFieldPathEdit_->setText(savedSolveFieldPath);
+    }
+    connect(solveFieldPathEdit_, &QLineEdit::textChanged, this, [](const QString &text) {
+        QSettings settings;
+        settings.setValue(QStringLiteral("Solve/SolveFieldPath"), text);
+    });
 
     for (auto *spin : {raSpin_, decSpin_, radiusSpin_})
         spin->setEnabled(false);
