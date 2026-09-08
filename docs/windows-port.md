@@ -194,41 +194,39 @@ pasting this build's own `solve-field --help` output (via the wrapper --
 `ansvr-solve-field.bat --help`) would settle its exact supported flag set
 in one step rather than continuing to find out by trial and error.
 
-**Getting `ansvr-solve-field.bat` into a built package:** it lives in the
-repo at `packaging/windows/`, not in `dist/bin` -- nothing in the CMake
-build or a from-scratch CI workflow copies it there automatically yet
-(unlike the `.rc`/`.ico` resources, which *are* wired into the build).
-Until that's added to the build, add one line copying it alongside the
-`.exe`s in whatever CI step already copies the MinGW/cfitsio DLLs (see
-the next section below), e.g.:
+**Getting `ansvr-solve-field.bat` into a built package: fixed, now
+automatic.** It used to live only in the repo at `packaging/windows/`,
+requiring a hand-maintained CI copy step -- which went through several
+real rounds of trouble before it ever actually worked (see the two
+sub-points below, kept for the general lessons they carry even though
+this specific problem no longer needs them). `src/gui/CMakeLists.txt`
+now copies it next to `EpochFrom-gui` itself, both as a `POST_BUILD`
+step on every build (so it's there in the raw build tree too, not only
+after `cmake --install`) and via an `install()` rule, on `WIN32` only --
+so it's just present in a normal Windows build's output from now on,
+with no CI YAML to keep in sync with this repo, and nothing further to
+do here.
 
-```bash
-cp "$(cygpath -u "$GITHUB_WORKSPACE")/packaging/windows/ansvr-solve-field.bat" .
-```
+The two lessons from getting there, still worth knowing for any
+*other* file a CI step needs to copy out of the checkout:
 
-(`cygpath -u` matters here: `$GITHUB_WORKSPACE` is set by the Actions
-runner itself, as a plain Windows-style path with backslashes, and MSYS2
-doesn't retroactively translate an env var it didn't create -- splicing
-it straight into a `/`-separated path mixes both separators in one
-string, which MSYS2's `cp` doesn't reliably resolve.)
-
-**Watch for a `checkout@v4` step using `with: path: <something>`.** If
-your workflow checks the repo out into a named subdirectory rather than
-`$GITHUB_WORKSPACE` directly (`actions/checkout`'s `path:` input), every
-path above needs that subdirectory folded in too -- `$GITHUB_WORKSPACE`
-alone still points at the plain workspace root, one level *above* where
-the actual checked-out source (and this script) really lives. A build
-step whose own output prefix (e.g. `dist/`) is workspace-relative rather
-than checkout-relative can end up at a different depth than the source
-tree without that being obvious from the error alone (a bare "No such
-file or directory" looks identical either way) -- if a path built from
-`$GITHUB_WORKSPACE` keeps not resolving even after fixing the separator
-mixing above, checking the checkout step's `with:` block for a `path:`
-override is the next thing to check, before suspecting the path
-arithmetic itself again.
-
-or, building locally, just copy it into the same folder as
-`EpochFrom-gui.exe` by hand.
+- **`$GITHUB_WORKSPACE` needs `cygpath -u` in an MSYS2 shell step.** It's
+  set by the Actions runner itself, as a plain Windows-style path with
+  backslashes, and MSYS2 doesn't retroactively translate an env var it
+  didn't create -- splicing it straight into a `/`-separated path mixes
+  both separators in one string, which MSYS2's `cp` doesn't reliably
+  resolve. `cp "$(cygpath -u "$GITHUB_WORKSPACE")/<path>" .` avoids that.
+- **Watch for a `checkout@v4` step using `with: path: <something>`.** If
+  a workflow checks the repo out into a named subdirectory rather than
+  `$GITHUB_WORKSPACE` directly (`actions/checkout`'s `path:` input),
+  every path built from `$GITHUB_WORKSPACE` needs that subdirectory
+  folded in too -- `$GITHUB_WORKSPACE` alone still points at the plain
+  workspace root, one level *above* where the actual checked-out source
+  really lives. A build step whose own output prefix (e.g. `dist/`) is
+  workspace-relative rather than checkout-relative can end up at a
+  different depth than the source tree without that being obvious from
+  the error alone (a bare "No such file or directory" looks identical
+  either way).
 
 ## ansvr's own Cygwin environment: fork failures
 
@@ -324,22 +322,16 @@ arguments as `bash -c`'s own trailing arguments, forwarded verbatim via
 still hitting this, make sure you have the current `.bat`, not a copy
 made before this fix.
 
-**`ansvr-solve-field.bat` isn't in your downloaded/built Windows
-package.** Nothing in the CMake build or a from-scratch CI workflow
-copies it into `dist/bin` automatically yet. Add a `cp` line to whatever
-CI step already bundles the MinGW/cfitsio DLLs, or just copy it next to
-`EpochFrom-gui.exe` by hand -- see "Getting `ansvr-solve-field.bat` into
-a built package" above.
-
-**A CI `cp` step for `ansvr-solve-field.bat` fails with "No such file or
-directory" even though the file is definitely in the repo.** Almost
-always a path-translation issue in an MSYS2 shell step, not a missing
-file: `cygpath -u "$GITHUB_WORKSPACE"` (see above) fixes the common
-Windows-path/POSIX-path mixing case; if it still fails after that, check
-whether the job's `actions/checkout` step uses `with: path: <something>`
--- that checks the repo out into a subdirectory, one level below what
-`$GITHUB_WORKSPACE` alone points at, which every path built from
-`$GITHUB_WORKSPACE` needs to account for.
+**`ansvr-solve-field.bat` (or `scripts/gaia_field_query.py`) isn't in
+your downloaded/built Windows package.** Fixed -- `src/gui/CMakeLists.txt`
+now copies both next to `EpochFrom-gui` automatically, at build time and
+via `install()`; see "Getting `ansvr-solve-field.bat` into a built
+package" above. If you're still not finding one of them, you're most
+likely running a build from before that CMake change -- get a current
+build. (If you're maintaining a *custom* packaging step that copies
+files out of the checkout for some other reason, the two path lessons
+just above -- `cygpath -u` and the `checkout@v4` `path:` gotcha -- are
+what to reach for.)
 
 **`child_info_fork::abort: address space needed by '...dll' is already
 occupied`, or a Python `OSError: [Errno 11] Resource temporarily

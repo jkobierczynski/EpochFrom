@@ -199,10 +199,12 @@ GaiaTab::~GaiaTab()
 
 QString GaiaTab::findScript() const
 {
-    // scripts/gaia_field_query.py isn't installed anywhere fixed (there's no
-    // `install` target in this early-scaffold project yet) -- look in the
-    // handful of places it plausibly sits relative to wherever this binary
-    // happens to be running from, same approach as
+    // src/gui/CMakeLists.txt now copies scripts/ next to this binary at
+    // build/install time (both a POST_BUILD step and an install() rule --
+    // see that file), so the very first candidate below is the expected
+    // hit in a normal build. The rest of the list stays as a fallback for
+    // anything running from a build tree laid out unexpectedly, or a
+    // checkout that predates that CMake change -- same approach as
     // MainWindow::findResidualFieldViewer().
     const QString appDir = QCoreApplication::applicationDirPath();
     const QStringList candidates = {
