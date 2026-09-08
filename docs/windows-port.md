@@ -141,12 +141,16 @@ of a Perl shebang line, so it can't launch the script directly at all.
 The documented, working pattern (also how other Windows astronomy
 software calls into ansvr) is to invoke it through Cygwin's own shell:
 `bash.exe --login -c "solve-field ..."`.
-[`packaging/windows/ansvr-solve-field.bat`](../packaging/windows/ansvr-solve-field.bat)
+[`scripts/ansvr-solve-field.bat`](../scripts/ansvr-solve-field.bat)
 wraps exactly that -- point EpochFrom's "solve-field path" setting at
 that `.bat` file (Qt's `QProcess` launches `.bat`/`.cmd` files on Windows
 fine) instead of at `solve-field` itself. **Confirmed on a real ansvr
 install:** this gets EpochFrom past "failed to start" and solve-field's
-own output starts coming through.
+own output starts coming through. **Update:** the Solve tab now
+auto-detects it there and pre-fills "solve-field path" with it directly
+(`SolveTab::findAnsvrWrapper()`, same mechanism as the Gaia tab's script
+auto-detection) -- on a normal Windows build, there's nothing to browse
+to or type in for this at all anymore.
 
 **Update, from real use: that caveat was real.** An image path containing
 a space (ordinary for astrophotography capture software's own
@@ -195,17 +199,22 @@ pasting this build's own `solve-field --help` output (via the wrapper --
 in one step rather than continuing to find out by trial and error.
 
 **Getting `ansvr-solve-field.bat` into a built package: fixed, now
-automatic.** It used to live only in the repo at `packaging/windows/`,
-requiring a hand-maintained CI copy step -- which went through several
-real rounds of trouble before it ever actually worked (see the two
-sub-points below, kept for the general lessons they carry even though
-this specific problem no longer needs them). `src/gui/CMakeLists.txt`
-now copies it next to `EpochFrom-gui` itself, both as a `POST_BUILD`
-step on every build (so it's there in the raw build tree too, not only
-after `cmake --install`) and via an `install()` rule, on `WIN32` only --
-so it's just present in a normal Windows build's output from now on,
-with no CI YAML to keep in sync with this repo, and nothing further to
-do here.
+automatic.** It lives in the repo at `scripts/ansvr-solve-field.bat`,
+right beside `gaia_field_query.py` -- it used to sit under
+`packaging/windows/` instead, requiring a hand-maintained CI copy step
+of its own, which went through several real rounds of trouble before it
+ever actually worked (see the two sub-points below, kept for the
+general lessons they carry even though this specific problem no longer
+needs them). `src/gui/CMakeLists.txt` copies the whole `scripts/`
+directory next to `EpochFrom-gui` on every build (`POST_BUILD`, so it's
+there in the raw build tree too, not only after `cmake --install`) and
+via an `install()` rule -- both files come along together, on every
+platform (the `.bat` is simply inert and unused off Windows), so it's
+just present in a normal build's output from now on, with no CI YAML to
+keep in sync with this repo, and nothing further to do here. The Solve
+tab also auto-detects it at that path and pre-fills "solve-field path"
+with it directly (`SolveTab::findAnsvrWrapper()`), the same way the Gaia
+tab already did for its own script.
 
 The two lessons from getting there, still worth knowing for any
 *other* file a CI step needs to copy out of the checkout:
@@ -296,10 +305,13 @@ even though ansvr is installed and the path looks right.**
 compiled `.exe` -- Windows' `CreateProcess` (what Qt's `QProcess` uses)
 can't launch a Perl-shebang script directly, no matter how correct the
 path to it is. Point EpochFrom's "solve-field path" setting at
-[`packaging/windows/ansvr-solve-field.bat`](../packaging/windows/ansvr-solve-field.bat)
+[`scripts/ansvr-solve-field.bat`](../scripts/ansvr-solve-field.bat)
 instead of at `solve-field` itself -- it routes the call through
 Cygwin's own `bash.exe`, which is what actually works. Confirmed on a
-real ansvr install.
+real ansvr install. On a normal build this field auto-detects and
+pre-fills that path on its own (the Solve tab looks for it right next to
+`EpochFrom-gui.exe`, in the `scripts` subfolder), so there's usually
+nothing to set here manually at all.
 
 **`solve-field: unknown option -- temp-axy` or `unknown option --
 axy`.** ansvr bundles an old astrometry.net build that rejects both of

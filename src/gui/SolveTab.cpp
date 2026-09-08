@@ -5,6 +5,7 @@
 #include "TabLayoutHelpers.h"
 
 #include <QCheckBox>
+#include <QCoreApplication>
 #include <QDir>
 #include <QDoubleSpinBox>
 #include <QFileDialog>
@@ -103,6 +104,20 @@ SolveTab::SolveTab(ProjectBar *projectBar, QWidget *parent) : QWidget(parent), p
     cpuLimitSpin_->setValue(55);
     cpuLimitSpin_->setSuffix(tr(" sec"));
     solveFieldPathEdit_ = new QLineEdit(QStringLiteral("solve-field"));
+    // "solve-field" alone is correct on Linux (astrometry.net's own build,
+    // expected on PATH) but never right on Windows -- astrometry.net has
+    // no native Windows build at all, so real Windows use goes through
+    // ansvr's Cygwin-hosted solve-field via scripts/ansvr-solve-field.bat
+    // (see docs/windows-port.md's ansvr/Cygwin FAQ for why that wrapper
+    // exists). If it's sitting next to this binary -- which it is, in a
+    // normal build, since src/gui/CMakeLists.txt copies scripts/ there --
+    // default straight to it instead of leaving everyone to browse to it
+    // or type the path in by hand on every fresh install.
+#if defined(Q_OS_WIN)
+    const QString detectedAnsvrWrapper = findAnsvrWrapper();
+    if (!detectedAnsvrWrapper.isEmpty())
+        solveFieldPathEdit_->setText(detectedAnsvrWrapper);
+#endif
 
     for (auto *spin : {raSpin_, decSpin_, radiusSpin_})
         spin->setEnabled(false);
@@ -212,6 +227,31 @@ void SolveTab::browsePath()
         if (!file.isEmpty())
             pathEdit_->setText(file);
     }
+}
+
+QString SolveTab::findAnsvrWrapper() const
+{
+    // Same approach as GaiaTab::findScript() -- look in the handful of
+    // places scripts/ansvr-solve-field.bat plausibly sits relative to
+    // wherever this binary is actually running from. The first candidate
+    // ("right beside me, in a scripts/ subfolder") is the expected hit in
+    // a normal build, since src/gui/CMakeLists.txt copies the whole
+    // scripts/ directory there; the rest are a fallback for anything laid
+    // out unexpectedly.
+    const QString appDir = QCoreApplication::applicationDirPath();
+    const QStringList candidates = {
+        QDir(appDir).filePath("scripts/ansvr-solve-field.bat"),
+        QDir(appDir).filePath("../scripts/ansvr-solve-field.bat"),
+        QDir(appDir).filePath("../../scripts/ansvr-solve-field.bat"),
+        QDir(appDir).filePath("../../../scripts/ansvr-solve-field.bat"),
+        QDir::current().filePath("scripts/ansvr-solve-field.bat"),
+    };
+    for (const QString &candidate : candidates) {
+        const QString cleaned = QDir::cleanPath(candidate);
+        if (QFileInfo::exists(cleaned))
+            return cleaned;
+    }
+    return QString();
 }
 
 void SolveTab::setBusy(bool busy)

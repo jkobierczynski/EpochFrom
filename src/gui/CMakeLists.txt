@@ -80,11 +80,13 @@ target_link_libraries(epoch_from_starfield PRIVATE epoch_from_core Qt6::Widgets)
 install(TARGETS epoch_from_gui epoch_from_starfield
         RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 
-# Copy scripts/ (currently just gaia_field_query.py) next to EpochFrom-gui
-# after every build, in the build tree itself -- not only on `cmake
-# --install`. GaiaTab::findScript() looks for it at a handful of paths
+# Copy scripts/ (gaia_field_query.py, and -- Windows only in practice, but
+# shipped on every platform for simplicity -- ansvr-solve-field.bat) next
+# to EpochFrom-gui after every build, in the build tree itself, not only
+# on `cmake --install`. Both GaiaTab::findScript() and
+# SolveTab::findAnsvrWrapper() look for their file at a handful of paths
 # relative to wherever the running .exe actually sits, and the very first
-# (and most reliable) one it checks is "right beside me, in a scripts/
+# (and most reliable) one either checks is "right beside me, in a scripts/
 # subfolder" -- confirmed missing from a real Windows package built by
 # running windeployqt directly against the raw build/install tree, which
 # never had a reason to know this directory needed to come along too. A
@@ -95,26 +97,9 @@ add_custom_command(TARGET epoch_from_gui POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
             "${CMAKE_SOURCE_DIR}/scripts"
             "$<TARGET_FILE_DIR:epoch_from_gui>/scripts"
-    COMMENT "Copying scripts/ next to EpochFrom-gui for GaiaTab's auto-detection")
+    COMMENT "Copying scripts/ next to EpochFrom-gui for GaiaTab/SolveTab auto-detection")
 install(DIRECTORY ${CMAKE_SOURCE_DIR}/scripts/
-        DESTINATION ${CMAKE_INSTALL_BINDIR}/scripts
-        FILES_MATCHING PATTERN "*.py")
-
-if(WIN32)
-    # Same reasoning, same fix, for the ansvr wrapper solve-field needs on
-    # Windows (see docs/windows-port.md's ansvr/Cygwin FAQ) -- previously
-    # required a hand-added CI copy step, which went through several rounds
-    # of path-translation and checkout-subdirectory confusion before it
-    # ever actually worked. Copying it here, at build time, means it's just
-    # *there* going forward, with no CI YAML to keep in sync with this repo.
-    add_custom_command(TARGET epoch_from_gui POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy
-                "${CMAKE_SOURCE_DIR}/packaging/windows/ansvr-solve-field.bat"
-                "$<TARGET_FILE_DIR:epoch_from_gui>/ansvr-solve-field.bat"
-        COMMENT "Copying ansvr-solve-field.bat next to EpochFrom-gui")
-    install(FILES ${CMAKE_SOURCE_DIR}/packaging/windows/ansvr-solve-field.bat
-            DESTINATION ${CMAKE_INSTALL_BINDIR})
-endif()
+        DESTINATION ${CMAKE_INSTALL_BINDIR}/scripts)
 
 # Desktop-entry + hicolor-icon-theme install, so a proper `cmake --install`
 # actually gets EpochFrom a taskbar/dock icon (see the comment on

@@ -42,6 +42,13 @@ private slots:
 private:
     void setBusy(bool busy);
 
+    // Windows only in practice (see the .cpp): looks for
+    // scripts/ansvr-solve-field.bat next to this binary, the same way
+    // GaiaTab::findScript() looks for gaia_field_query.py, so the
+    // "solve-field path" field can default to it directly instead of
+    // everyone needing to browse to it or type it in by hand.
+    QString findAnsvrWrapper() const;
+
     ProjectBar *projectBar_;
 
     QRadioButton *singleFileRadio_;
