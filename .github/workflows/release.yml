@@ -139,7 +139,22 @@ jobs:
         run: |
           curl -fsSL -o wcslib.tar.bz2 \
             "https://www.atnf.csiro.au/computing/software/wcs/wcslib-releases/wcslib-${WCSLIB_VERSION}.tar.bz2"
-          tar -xjf wcslib.tar.bz2
+          # Confirmed on a real run of this workflow: wcslib's release
+          # tarball includes at least one symlink (wcslib-8.9/.clang-tidy ->
+          # clang-tidy, a dev-tooling config file, unrelated to the actual
+          # build) that MSYS2's tar refuses to create by default ("Cannot
+          # create symlink to 'clang-tidy': No such file or directory").
+          # MSYS2 creates real native NTFS symlinks by default
+          # (winsymlinks:nativestrict) which, unlike POSIX symlinks, need
+          # their target to already exist/resolve, and abort the whole
+          # extraction otherwise -- see
+          # https://github.com/msys2/MSYS2-packages/issues/2130 for the same
+          # failure on an unrelated project. winsymlinks:lnk switches tar to
+          # lightweight pseudo-symlink files instead, which don't need the
+          # target to exist -- harmless here, since nothing in wcslib's
+          # build actually depends on .clang-tidy being a real filesystem
+          # symlink.
+          MSYS=winsymlinks:lnk tar -xjf wcslib.tar.bz2
         working-directory: ${{ github.workspace }}
 
       - name: Patch wcslib for MinGW

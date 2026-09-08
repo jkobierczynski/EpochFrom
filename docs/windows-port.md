@@ -1001,3 +1001,44 @@ something to assume just works because it was written carefully.
 No extra repository secrets are needed: `softprops/action-gh-release`
 uses the default `GITHUB_TOKEN`, and the `release` job already grants it
 `contents: write`.
+
+### First real CI run: findings
+
+As predicted above, the first actual `workflow_dispatch` run surfaced a
+real problem the local, interactive debugging never could have -- it
+happens during plain archive extraction, before any of the
+already-validated fixes even run.
+
+- **`build-linux` passed outright**, first try, no changes needed --
+  the ordinary, low-risk half of this pipeline lived up to that
+  billing.
+- **`build-windows` failed at the "Fetch wcslib source" step**:
+  ```
+  tar: wcslib-8.9/.clang-tidy: Cannot create symlink to 'clang-tidy': No such file or directory
+  tar: Exiting with failure status due to previous errors
+  Error: Process completed with exit code 2.
+  ```
+  wcslib's own release tarball ships at least one symlink
+  (`.clang-tidy -> clang-tidy`, an editor/dev-tooling config file with
+  nothing to do with actually building the library). MSYS2's `tar`
+  creates *real* native NTFS symlinks by default
+  (`winsymlinks:nativestrict`), and unlike POSIX symlinks, a native
+  Windows symlink needs its target to already exist/resolve at creation
+  time -- when it doesn't, extraction aborts outright rather than just
+  skipping that one entry. Confirmed as a known, general MSYS2 tar
+  limitation, not something specific to this project or to wcslib
+  ([msys2/MSYS2-packages#2130](https://github.com/msys2/MSYS2-packages/issues/2130)
+  reports the identical failure shape on a completely unrelated
+  archive). Fixed by setting `MSYS=winsymlinks:lnk` for that one `tar`
+  invocation, which switches symlink handling to lightweight
+  pseudo-symlink files that don't require the target to exist --
+  harmless here since nothing in wcslib's build actually depends on
+  `.clang-tidy` being a real filesystem symlink.
+
+Not yet known: whether this is the *only* extraction-time symlink
+problem in the wcslib tarball, or just the first one `tar` happened to
+report before aborting -- `winsymlinks:lnk` should cover any others the
+same way, but that's inferred from how the option is documented to
+work, not confirmed against a second real failure. Worth watching the
+next run's "Fetch wcslib source" step output specifically, even though
+it's expected to pass now.
