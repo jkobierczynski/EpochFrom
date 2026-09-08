@@ -2,6 +2,9 @@
 
 #include <QFileInfo>
 
+#include <QStringList>
+
+#include <dis.h>
 #include <fitsio.h>
 #include <wcs.h>
 #include <wcserr.h>
@@ -30,11 +33,32 @@ struct Holder {
 // a numeric status) once wcserr_enable(1) has been called -- off by
 // default. Harmless and idempotent to call repeatedly; done right before
 // the wcslib calls below so any failure from here on carries real detail.
+// A SIP/TPV/etc. distortion failure can originate one level down, in the
+// disprm struct wcsprm::lin::dispre (prior distortion) or ::disseq
+// (sequent) points at -- wcs->err->msg alone was observed (CI, wcslib 8.9)
+// to carry only the generic "Invalid parameter value" text for exactly
+// this kind of failure, so check those too and report whichever messages
+// are actually populated.
 QString wcsErrorDetail(const wcsprm *wcs)
 {
-    if (wcs && wcs->err && wcs->err->msg && wcs->err->msg[0] != '\0')
-        return QStringLiteral(": %1").arg(QString::fromLocal8Bit(wcs->err->msg));
-    return QString();
+    if (!wcs)
+        return QString();
+    QStringList details;
+    if (wcs->err && wcs->err->msg && wcs->err->msg[0] != '\0')
+        details << QString::fromLocal8Bit(wcs->err->msg);
+    if (wcs->lin.dispre && wcs->lin.dispre->err && wcs->lin.dispre->err->msg &&
+        wcs->lin.dispre->err->msg[0] != '\0') {
+        details << QStringLiteral("prior distortion: %1")
+                       .arg(QString::fromLocal8Bit(wcs->lin.dispre->err->msg));
+    }
+    if (wcs->lin.disseq && wcs->lin.disseq->err && wcs->lin.disseq->err->msg &&
+        wcs->lin.disseq->err->msg[0] != '\0') {
+        details << QStringLiteral("sequent distortion: %1")
+                       .arg(QString::fromLocal8Bit(wcs->lin.disseq->err->msg));
+    }
+    if (details.isEmpty())
+        return QString();
+    return QStringLiteral(": %1").arg(details.join(QStringLiteral(" / ")));
 }
 
 } // namespace

@@ -120,6 +120,44 @@ bool writeSyntheticWcs(const QString &path, double crvalRa, double crvalDec, boo
         double b00 = 0.0, b11 = -2.1e-6;
         fits_write_key(fptr, TDOUBLE, "B_0_0", &b00, "", &status);
         fits_write_key(fptr, TDOUBLE, "B_1_1", &b11, "", &status);
+
+        // Real solve-field output fits both a forward (A/B) and inverse
+        // (AP/BP) SIP polynomial pair -- PlateSolver.cpp's kSipFamilies
+        // already anticipates AP/BP possibly being present (it copies
+        // whichever of the four families it finds). This fixture only had
+        // the forward pair; adding the inverse one is a closer match to
+        // real output and, per one hypothesis for a CI failure seen only
+        // against a newer wcslib (forward-only SIP passing wcsset() on an
+        // older one), might matter to wcslib's own validation. Coefficient
+        // values here are plausible but not an exact inverse -- nothing in
+        // this test checks their numerical correctness, only that wcslib
+        // accepts the header and that writeWcsIntoFits() copies the cards.
+        long orderP = 2;
+        fits_write_key(fptr, TLONG, "AP_ORDER", &orderP, "", &status);
+        fits_write_key(fptr, TLONG, "BP_ORDER", &orderP, "", &status);
+        double ap00 = 0.0, ap11 = -1.23e-6, ap20 = 4.5e-7;
+        fits_write_key(fptr, TDOUBLE, "AP_0_0", &ap00, "", &status);
+        fits_write_key(fptr, TDOUBLE, "AP_1_1", &ap11, "", &status);
+        fits_write_key(fptr, TDOUBLE, "AP_2_0", &ap20, "", &status);
+        double bp00 = 0.0, bp11 = 2.1e-6;
+        fits_write_key(fptr, TDOUBLE, "BP_0_0", &bp00, "", &status);
+        fits_write_key(fptr, TDOUBLE, "BP_1_1", &bp11, "", &status);
+
+        // wcslib's own dis.h documents that it recognizes the legacy SIP
+        // A_p_q/B_p_q keyword convention "along with CPDISja = 'SIP' and
+        // the required DPja.NAXES keywords." wcslib 8.2.2 evidently
+        // synthesizes these itself when they're absent (this fixture
+        // passed against it without them), but writing them explicitly
+        // both matches what WCS Paper IV actually specifies and is cheap
+        // insurance against a newer wcslib being stricter about it --
+        // verified (via a standalone probe against the locally available
+        // wcslib 8.2.2) to not break anything by being present.
+        char cpdis[] = "SIP";
+        fits_write_key(fptr, TSTRING, "CPDIS1", cpdis, "", &status);
+        fits_write_key(fptr, TSTRING, "CPDIS2", cpdis, "", &status);
+        char dpNaxes[] = "NAXES:  2";
+        fits_write_key(fptr, TSTRING, "DP1", dpNaxes, "", &status);
+        fits_write_key(fptr, TSTRING, "DP2", dpNaxes, "", &status);
     }
 
     fits_close_file(fptr, &status);
