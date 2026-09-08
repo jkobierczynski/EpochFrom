@@ -17,6 +17,7 @@
 #include <QRadioButton>
 #include <QScrollArea>
 #include <QScrollBar>
+#include <QSettings>
 #include <QSplitter>
 #include <QVBoxLayout>
 
@@ -184,9 +185,36 @@ GaiaTab::GaiaTab(ProjectBar *projectBar, QWidget *parent) : QWidget(parent), pro
     connect(queryButton_, &QPushButton::clicked, this, &GaiaTab::startQuery);
     connect(cancelButton_, &QPushButton::clicked, this, &GaiaTab::cancelQuery);
 
-    const QString detected = findScript();
-    if (!detected.isEmpty())
-        scriptPathEdit_->setText(detected);
+    // Remember whatever the user last set here (same QSettings-backed
+    // pattern ProjectBar already uses for its own fields) -- a custom
+    // Python interpreter path, a uv-managed venv's python.exe in
+    // particular, is exactly the kind of thing nobody wants to retype or
+    // re-browse-to on every launch. A saved value wins over both the
+    // hardcoded "python"/"python3" default and script auto-detection,
+    // since it represents a deliberate choice the user already made;
+    // auto-detection only runs when there's nothing saved yet.
+    QSettings settings;
+    const QString savedPython = settings.value(QStringLiteral("Gaia/PythonPath")).toString();
+    if (!savedPython.isEmpty())
+        pythonPathEdit_->setText(savedPython);
+
+    const QString savedScript = settings.value(QStringLiteral("Gaia/ScriptPath")).toString();
+    if (!savedScript.isEmpty()) {
+        scriptPathEdit_->setText(savedScript);
+    } else {
+        const QString detected = findScript();
+        if (!detected.isEmpty())
+            scriptPathEdit_->setText(detected);
+    }
+
+    connect(pythonPathEdit_, &QLineEdit::textChanged, this, [](const QString &text) {
+        QSettings settings;
+        settings.setValue(QStringLiteral("Gaia/PythonPath"), text);
+    });
+    connect(scriptPathEdit_, &QLineEdit::textChanged, this, [](const QString &text) {
+        QSettings settings;
+        settings.setValue(QStringLiteral("Gaia/ScriptPath"), text);
+    });
 }
 
 GaiaTab::~GaiaTab()
