@@ -229,6 +229,7 @@ jobs:
         run: |
           windeployqt.exe --release --compiler-runtime EpochFrom-gui.exe
           windeployqt.exe --release --compiler-runtime EpochFrom-starfield.exe
+          cp /mingw64/bin/libwinpthread-1.dll .
           cp /mingw64/bin/libcfitsio*.dll .
 
       # A plain PowerShell step, not MSYS2 (overriding the job's default

@@ -135,6 +135,34 @@ accepts the same flags `PlateSolver::solve()` passes (`--ra`/`--dec`,
 byproduct-suppression flags added for the "why is there a new fits image"
 fix) is unverified.
 
+## Deploying a MinGW build: DLLs windeployqt doesn't know about
+
+`windeployqt.exe EpochFrom-gui.exe` only copies Qt's own dependencies; it
+has no concept of the MinGW toolchain's own runtime, or of wcslib/cfitsio.
+Confirmed on a real Windows run: the `.exe` fails to start with a missing-
+DLL dialog for each of these until they're dealt with. `-static-libgcc
+-static-libstdc++` (in the top-level `CMakeLists.txt`, under `if(MINGW)`)
+reliably eliminates the need for `libgcc_s_seh-1.dll` and `libstdc++-6.dll`
+-- confirmed fixed on a real run. `libwinpthread-1.dll` resisted the same
+treatment (neither a plain `-static -lwinpthread` nor an explicit
+`-Wl,-Bstatic,--whole-archive`/`-Bdynamic` wrapper kept it out of the
+`.exe`'s import table on a real run, most likely because Qt's own
+transitive link interface pulls it back in dynamically later in the link
+line) -- rather than keep guessing at MinGW/CMake link-line ordering with
+no MinGW toolchain available to test against, the practical fix is to just
+copy it, the same way the deploy step already has to for cfitsio (wcslib
+itself turned out to be static-only on MSYS2, per real CI output, so
+nothing to copy there):
+
+```
+cp /mingw64/bin/libwinpthread-1.dll .
+cp /mingw64/bin/libcfitsio*.dll .
+```
+
+If a future MSYS2/Qt update makes cfitsio or Qt itself pull in
+`libgcc_s_seh-1.dll`/`libstdc++-6.dll` again despite the static-link flags,
+the same `cp` pattern from `/mingw64/bin/` covers those too.
+
 ## Known limitations even once it builds
 
 - **Solve cancellation doesn't kill `solve-field`'s full process tree on

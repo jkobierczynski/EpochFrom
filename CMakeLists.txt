@@ -30,22 +30,22 @@ endif()
 # only knows about Qt's own dependencies, not the toolchain's, so it never
 # copies these, and the .exe fails to start (missing-DLL errors) anywhere
 # they aren't already on PATH (i.e. everywhere outside an MSYS2 shell).
-# -static-libgcc/-static-libstdc++ fixed the first two (confirmed); plain
-# "-static -lwinpthread" after them did NOT reliably force libwinpthread
-# static too (also confirmed -- still missing on a real run), a known
-# MinGW/CMake link-line-ordering gotcha. Forcing it explicitly with
-# -Wl,-Bstatic/--whole-archive, then reverting to -Bdynamic before anything
-# else links, is the more reliable form. Applies to every target below;
-# Qt's own DLLs (brought in via windeployqt) and wcslib/cfitsio's are
-# unaffected, since those still come from their find_package()/pkg-config
-# imported targets, linked after -Bdynamic is restored.
+#
+# -static-libgcc/-static-libstdc++ reliably fixed the first two (confirmed
+# on a real run). libwinpthread did NOT cooperate the same way -- neither a
+# plain trailing "-static -lwinpthread" nor an explicit
+# -Wl,-Bstatic,--whole-archive/-Bdynamic wrapper actually kept it out of the
+# .exe's import table (both confirmed still missing on a real run,
+# likely because something in Qt's own transitive link interface pulls
+# -lwinpthread back in dynamically later in the link line, after CMake's
+# add_link_options() flags have already run). Rather than keep fighting
+# CMake/MinGW link-line ordering blind (this sandbox has no MinGW toolchain
+# to reproduce it against), libwinpthread-1.dll is instead just copied
+# alongside the .exe at deploy time -- same pattern the CI workflow already
+# uses for libcfitsio's DLL. See docs/windows-port.md for the exact deploy
+# step this needs.
 if(MINGW)
-    add_link_options(
-        -static-libgcc
-        -static-libstdc++
-        -Wl,-Bstatic,--whole-archive -lwinpthread -Wl,--no-whole-archive
-        -Wl,-Bdynamic
-    )
+    add_link_options(-static-libgcc -static-libstdc++)
 endif()
 
 find_package(Qt6 REQUIRED COMPONENTS Core)
