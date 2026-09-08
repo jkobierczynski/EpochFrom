@@ -148,13 +148,23 @@ fine) instead of at `solve-field` itself. **Confirmed on a real ansvr
 install:** this gets EpochFrom past "failed to start" and solve-field's
 own output starts coming through.
 
-**One caveat this hasn't been exercised against yet:** the wrapper
-forwards arguments through cmd.exe's `%*` into a single `bash -c` string,
-and an argument containing spaces (a Windows image path with spaces in
-it, for instance) could end up mis-quoted once it's re-embedded that way
--- this hasn't come up in testing so far, but if a solve fails specifically
-on a path with spaces where a similar path without spaces works, that's
-the first thing to suspect.
+**Update, from real use: that caveat was real.** An image path containing
+a space (ordinary for astrophotography capture software's own
+auto-generated filenames, e.g. `2017-04-29 21-15-33 M31.fits`) got
+silently truncated at the first space -- solve-field only ever saw
+`2017-04-29`, confirmed via a real solve failure quoting exactly that.
+Cause: the original wrapper spliced `%*` directly into a single, already
+double-quoted `bash -c "solve-field %*"` string, which then gets parsed
+*twice* with two different quoting rules -- once by Windows' own argv
+parser building `bash.exe`'s command line, then again by bash's own `-c`
+string word-splitting -- and a space-containing argument doesn't survive
+both intact. Fixed: the script now passes the real arguments as `bash
+-c`'s own trailing arguments (parsed exactly once, by the same
+Windows argv-quoting rules Qt's `QProcess` used to build them) and keeps
+the `-c` script itself fixed and tiny -- `exec solve-field "$@"` --
+forwarding those already-intact arguments through verbatim rather than
+re-embedding them as text. Not yet reconfirmed against a real solve with
+a spaced filename since this fix (that's the next thing to try).
 
 The next issue that surfaced once solve-field could actually start:
 ansvr bundles an older astrometry.net build that doesn't recognize the
@@ -193,11 +203,78 @@ Until that's added to the build, add one line copying it alongside the
 the next section below), e.g.:
 
 ```bash
-cp "$GITHUB_WORKSPACE/packaging/windows/ansvr-solve-field.bat" .
+cp "$(cygpath -u "$GITHUB_WORKSPACE")/packaging/windows/ansvr-solve-field.bat" .
 ```
+
+(`cygpath -u` matters here: `$GITHUB_WORKSPACE` is set by the Actions
+runner itself, as a plain Windows-style path with backslashes, and MSYS2
+doesn't retroactively translate an env var it didn't create -- splicing
+it straight into a `/`-separated path mixes both separators in one
+string, which MSYS2's `cp` doesn't reliably resolve.)
+
+**Watch for a `checkout@v4` step using `with: path: <something>`.** If
+your workflow checks the repo out into a named subdirectory rather than
+`$GITHUB_WORKSPACE` directly (`actions/checkout`'s `path:` input), every
+path above needs that subdirectory folded in too -- `$GITHUB_WORKSPACE`
+alone still points at the plain workspace root, one level *above* where
+the actual checked-out source (and this script) really lives. A build
+step whose own output prefix (e.g. `dist/`) is workspace-relative rather
+than checkout-relative can end up at a different depth than the source
+tree without that being obvious from the error alone (a bare "No such
+file or directory" looks identical either way) -- if a path built from
+`$GITHUB_WORKSPACE` keeps not resolving even after fixing the separator
+mixing above, checking the checkout step's `with:` block for a `path:`
+override is the next thing to check, before suspecting the path
+arithmetic itself again.
 
 or, building locally, just copy it into the same folder as
 `EpochFrom-gui.exe` by hand.
+
+## ansvr's own Cygwin environment: fork failures
+
+Confirmed on a real solve attempt, unrelated to anything above: ansvr's
+bundled Python 2 (used internally by astrometry.net's own
+`image2pnm.py`, part of its image-loading pipeline) failed with
+
+```
+child_info_fork::abort: address space needed by 'cygcrypto-1.0.0.dll'
+(0x1770000) is already occupied
+...
+OSError: [Errno 11] Resource temporarily unavailable
+```
+
+This is a long-standing, well-known Cygwin issue, nothing specific to
+EpochFrom or this port: Cygwin emulates POSIX `fork()` on top of Windows
+(which has no native equivalent), by requiring every DLL involved to
+re-map at the exact same virtual address in the child process as it held
+in the parent. When something else already occupies that address in the
+child at the moment of the fork -- another DLL loaded by antivirus/EDR
+software injecting into the process, a Windows update that shifted a
+system DLL's base address, or just accumulated drift since ansvr's DLLs
+were originally built -- the fork fails outright with exactly this
+error. It's an ansvr/Cygwin-installation issue on the machine running
+EpochFrom, not something a `PlateSolver.cpp` change can fix.
+
+The standard Cygwin fix is `rebaseall`, which reassigns every DLL in a
+Cygwin installation a fresh, non-conflicting base address:
+
+1. Close every ansvr/Cygwin-using process first (including EpochFrom, if
+   it has a solve in flight) -- `rebaseall` can't rewrite a DLL that's
+   currently mapped into a running process.
+2. From `%LOCALAPPDATA%\cygwin_ansvr\bin`, run `ash.exe` (not
+   `bash.exe` -- `ash` is the minimal shell Cygwin's own tooling uses
+   specifically for this, since it doesn't hold to fewer of the Cygwin
+   DLLs' handles open than `bash` would).  Run it as Administrator if
+   plain rebasing fails with a permissions error.
+3. In that `ash` shell: `/bin/rebaseall -v`
+4. Close `ash`, then try solving again.
+
+This hasn't been verified against a real ansvr install yet (no ansvr
+installation available to this pass), so treat it as the documented
+standard fix for this exact Cygwin error, not as EpochFrom-specific
+confirmation -- if it doesn't resolve it, the next thing to suspect is
+antivirus/EDR software actively injecting DLLs into every new process on
+that machine, which can make the conflict recur even after a rebase.
 
 ## Deploying a MinGW build: DLLs windeployqt doesn't know about
 
