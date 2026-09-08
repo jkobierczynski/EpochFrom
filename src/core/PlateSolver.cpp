@@ -1,6 +1,7 @@
 #include "PlateSolver.h"
 
 #include <QDir>
+#include <QFile>
 #include <QFileInfo>
 #include <QProcess>
 #include <QStandardPaths>
@@ -374,6 +375,10 @@ PlateSolveResult PlateSolver::solve(const QString &imagePath, const PlateSolveOp
     const QDir dir = imageInfo.dir();
     const QString wcsPath = dir.filePath(baseName + ".wcs");
     const QString solvedMarkerPath = dir.filePath(baseName + ".solved");
+    // See the --axy comment below: this is the temp axy path EpochFrom
+    // itself is responsible for deleting once solve-field exits, on every
+    // return path below that's reached after the process actually starts.
+    const QString axyPath = dir.filePath(baseName + ".epochfrom-axy.tmp");
 
     QStringList args;
     args << "--no-plots" << "--overwrite";
@@ -389,11 +394,16 @@ PlateSolveResult PlateSolver::solve(const QString &imagePath, const PlateSolveOp
     // (wcsPath below, which IS kept -- readWcsFile() reads it) and only
     // ever touches the original FITS header when the caller explicitly
     // opts into that via updateFitsHeader/writeWcsIntoFits, so none of
-    // these are wanted: point --axy at a real temp file (astrometry.net's
-    // own --temp-axy flag deletes it on exit; "none" isn't a valid value
-    // for --axy the way it is for the others below) and disable the rest
-    // outright.
-    args << "--temp-axy";
+    // these are wanted: point --axy at a real temp file and delete it
+    // ourselves after the process exits (below), rather than relying on
+    // astrometry.net's own --temp-axy flag, which does the same thing but
+    // isn't recognized by every solve-field build in the wild -- confirmed
+    // via real use: ansvr's bundled (older) astrometry.net rejects it
+    // outright with "unknown option -- temp-axy". --axy itself has been
+    // supported since long before that, so this is the portable choice;
+    // "none" isn't a valid value for --axy the way it is for the others
+    // below, hence the temp path instead. Disable the rest outright.
+    args << "--axy" << axyPath;
     args << "--new-fits" << "none";
     args << "--rdls" << "none";
     args << "--match" << "none";
@@ -475,6 +485,7 @@ PlateSolveResult PlateSolver::solve(const QString &imagePath, const PlateSolveOp
 #endif
         proc.kill();
         proc.waitForFinished(5000);
+        QFile::remove(axyPath);
         result.errorMessage = QStringLiteral("solve-field timed out after %1s")
                                    .arg(options.cpuLimitSeconds + 30);
         return result;
@@ -482,6 +493,10 @@ PlateSolveResult PlateSolver::solve(const QString &imagePath, const PlateSolveOp
 
     const QString combinedOutput = QString::fromLocal8Bit(proc.readAllStandardOutput()) +
                                     QString::fromLocal8Bit(proc.readAllStandardError());
+
+    // Ours to clean up on every path from here on -- solve-field has now
+    // exited (successfully or not) and won't still be writing to it.
+    QFile::remove(axyPath);
 
     if (!QFileInfo::exists(solvedMarkerPath) || !QFileInfo::exists(wcsPath)) {
         result.errorMessage = combinedOutput.isEmpty()

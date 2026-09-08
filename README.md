@@ -14,6 +14,9 @@ resolution for both MSYS2/MinGW and MSVC/vcpkg, `.exe` icon resources, a
 portable Python-interpreter default) is in place but not yet compiled or
 tested on a real Windows machine — see [`docs/windows-port.md`](docs/windows-port.md)
 for exact status and what a first build attempt still needs to figure out.
+CMake but untested; plate-solving needs a separately-installed local
+solver such as ANSVR, since astrometry.net's own `solve-field` has no
+native Windows build).
 
 ## Status
 

@@ -1,19 +1,19 @@
 # Windows port: current status
 
-EpochFrom has been built and used on Linux only. This document tracks the
-groundwork toward a Windows build: what's been changed to make one
-possible, what a Windows build still needs from you, and what's still
-genuinely unverified.
+**Confirmed working on a real Windows machine, MSYS2/MinGW toolchain, via
+GitHub Actions CI: configure, full build (core + CLI + GUI + tests, ctest
+all green), `windeployqt` + the runtime DLL bundling below, and
+`EpochFrom-gui.exe` actually launching and running.** This document tracks
+what got it there, what a Windows build needs from you, and what's still
+genuinely unverified (MSVC/vcpkg hasn't been attempted at all -- only
+MSYS2/MinGW has been confirmed end to end).
 
-**Nothing described here has been compiled or run on Windows yet.** The
-changes were made and reviewed carefully, and the same CMake refactor was
-verified not to have broken the existing Linux build (full rebuild + the
-test suite, both green) -- but the Windows-specific code paths
-(`find_package(WCSLIB)`'s fallback branch, the vcpkg `cfitsio` target
-detection, the `.rc` icon resources) have only been checked for CMake
-syntax validity, not exercised against a real Windows toolchain. Treat
-this page as a starting point for the first real attempt, not a
-guarantee it configures cleanly on the first try.
+Getting here took several real rounds of CI failures and fixes -- wcslib's
+own dis.h-documented SIP requirements, MinGW's runtime DLLs not being
+something windeployqt knows to bundle, cfitsio's own libcurl dependency,
+and more -- each one fixed and reverified against this repo's own Linux
+build before being sent back. The sections below are what's left standing
+after that process, not a first-draft guess.
 
 ## What already works without changes
 
@@ -125,15 +125,55 @@ it into `CMAKE_PREFIX_PATH`).
 doesn't attempt to work around this -- `PlateSolver`'s `solveFieldPath`
 option (the Solve tab's "solve-field path" field, or `--solve-field-path`
 on the CLI) already just takes whatever's on `PATH` or an explicit path,
-so the intended route is [ANSVR](http://ronallo.com/astrometry-net-ansvr)
-(or a current equivalent), the local astrometry.net solver already used
-by a lot of the PixInsight-on-Windows community, pointed at from that
-setting. This hasn't been tried end-to-end against EpochFrom -- in
-particular, whether ANSVR's `solve-field.exe` (if that's what it exposes)
-accepts the same flags `PlateSolver::solve()` passes (`--ra`/`--dec`,
-`--scale-low`/`--scale-high`, `--downsample`, `--cpulimit`, the
-byproduct-suppression flags added for the "why is there a new fits image"
-fix) is unverified.
+so the intended route is [ansvr](https://adgsoftware.com/ansvr/) (or a
+current equivalent), the local astrometry.net solver already used by a
+lot of the PixInsight-on-Windows community, pointed at from that setting.
+
+**Update, from real use:** pointing `solveFieldPath` directly at
+`solve-field` inside an ansvr install (typically
+`%LOCALAPPDATA%\cygwin_ansvr\...`) fails with EpochFrom's own "failed to
+start ... -- is astrometry.net installed and on PATH?" message, no matter
+the exact path or whether `.exe` is appended. Cause: ansvr's `solve-field`
+is astrometry.net's own upstream Perl script, not a compiled `.exe` -- it
+only runs inside the Cygwin environment ansvr bundles, and Windows'
+`CreateProcess` (what Qt's `QProcess` uses under the hood) has no concept
+of a Perl shebang line, so it can't launch the script directly at all.
+The documented, working pattern (also how other Windows astronomy
+software calls into ansvr) is to invoke it through Cygwin's own shell:
+`bash.exe --login -c "solve-field ..."`.
+[`packaging/windows/ansvr-solve-field.bat`](../packaging/windows/ansvr-solve-field.bat)
+wraps exactly that -- point EpochFrom's "solve-field path" setting at
+that `.bat` file (Qt's `QProcess` launches `.bat`/`.cmd` files on Windows
+fine) instead of at `solve-field` itself. **Confirmed on a real ansvr
+install:** this gets EpochFrom past "failed to start" and solve-field's
+own output starts coming through.
+
+**One caveat this hasn't been exercised against yet:** the wrapper
+forwards arguments through cmd.exe's `%*` into a single `bash -c` string,
+and an argument containing spaces (a Windows image path with spaces in
+it, for instance) could end up mis-quoted once it's re-embedded that way
+-- this hasn't come up in testing so far, but if a solve fails specifically
+on a path with spaces where a similar path without spaces works, that's
+the first thing to suspect.
+
+The next issue that surfaced once solve-field could actually start:
+ansvr bundles an older astrometry.net build that doesn't recognize the
+`--temp-axy` flag (`solve-field: unknown option -- temp-axy`) --
+`PlateSolver::solve()` used to pass that to keep its intermediate `.axy`
+file out of the image's directory. Fixed in `PlateSolver.cpp`: it now
+passes `--axy <temp path>` instead (supported by astrometry.net builds
+going back much further than `--temp-axy` itself) and deletes that file
+itself once solve-field exits, on every code path. Verified against this
+repo's own Linux build (9/9 tests still pass) -- **not yet confirmed
+against a real ansvr solve**, since that requires an actual solve to run
+to completion, which is the next thing to try.
+
+Beyond those two, whether ansvr's `solve-field` accepts the rest of the
+flags `PlateSolver::solve()` passes (`--ra`/`--dec`, `--scale-low`/
+`--scale-high`, `--downsample`, `--cpulimit`, the other
+byproduct-suppression flags) is still unverified -- each one so far has
+surfaced as its own distinct error once the previous one was fixed, so
+more of the same is possible.
 
 ## Deploying a MinGW build: DLLs windeployqt doesn't know about
 
@@ -200,8 +240,19 @@ own DLLs, already placed by `windeployqt`).
 
 ## What to actually do first
 
-MSYS2/MinGW is confirmed to get through configure now (Qt6, Eigen3,
-wcslib, and cfitsio all resolve via pkg-config on a real CI run, once the
-Eigen version pin and the cfitsio `/mingw64` path issue above were fixed).
-MSVC/vcpkg is still unattempted -- wcslib's lack of a vcpkg port remains
-the biggest open unknown there.
+**MSYS2/MinGW is done and confirmed working end to end** -- configure,
+build, tests, deploy, and a real launch of `EpochFrom-gui.exe`. If you're
+setting up a Windows build, use that toolchain; it's the one this page's
+guidance has actually been exercised against. MSVC/vcpkg remains
+completely unattempted -- wcslib's lack of a vcpkg port is still the
+biggest open unknown there, and nothing in this document's MSVC section
+has been verified against a real MSVC build the way the MinGW path now
+has.
+
+The one piece of actual EpochFrom functionality still unverified on
+Windows is plate-solving itself -- see [Plate-solving:
+ANSVR](#plate-solving-ansvr) above. `EpochFrom-gui.exe` correctly reports
+`failed to start 'solve-field' -- is astrometry.net installed and on
+PATH?` when no solver is configured; that's expected, not a bug, until
+ANSVR (or an equivalent) is installed and pointed at from the Solve tab's
+"solve-field path" setting.
