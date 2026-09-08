@@ -25,7 +25,15 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
 endif()
 
 find_package(Qt6 REQUIRED COMPONENTS Core)
-find_package(Eigen3 3.3 REQUIRED NO_MODULE)
+
+# No minimum version pinned here on purpose: Eigen upstream jumped straight
+# from 3.4 to a 5.0 release as a version-scheme realignment, and CMake's
+# package version check (SameMajorVersion compatibility) treats that 5.x as
+# incompatible with an "Eigen3 3.3" request even though it's a superset of
+# what EpochFrom actually uses -- MSYS2's eigen3 package already ships 5.0.1,
+# so pinning 3.3 broke the MinGW build. Nothing here needs anything newer
+# than what's been in Eigen since well before 3.3.
+find_package(Eigen3 REQUIRED NO_MODULE)
 
 # wcslib and cfitsio, resolved into two OS-agnostic targets --
 # EpochFrom::WCSLIB and EpochFrom::CFITSIO -- that the rest of the build
