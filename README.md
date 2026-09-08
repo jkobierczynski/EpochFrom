@@ -28,173 +28,65 @@ capture library (2013–2018 North America / Pelican Nebula sessions) before
 any of this code was written; see `docs/` for what that prototyping found.
 
 Plate-solving is also ported: `PlateSolver` shells out to `astrometry.net`'s
-`solve-field` (same as the prototype) and, either from that or directly from
-an existing `.wcs` sidecar, reads back center RA/Dec, field width/height,
-and pixel scale via wcslib (honoring the full TAN/TAN-SIP projection, SIP
-distortion terms included, rather than a naive linear shortcut). Covered by
-a deterministic synthetic-fixture unit test (`tests/plate_solver_wcs_test.cpp`)
-and cross-checked manually against real solved fields from the Python
-prototyping. See `EpochFrom solve --help`.
+Early scaffold, but every pipeline stage is implemented in C++ and tested —
+each is a direct port of a Python prototype validated interactively against
+this project's own real capture library (2013–2018 North America/Pelican
+Nebula sessions) before any of this code was written; see `docs/` for what
+that prototyping found.
 
-Star detection and equipment profiling are also ported. `StarDetector` finds
-point sources in a light frame (tiled/interpolated local background
-estimate, a Gaussian matched filter sized to the expected FWHM, and a
-DAOFIND-style sharpness statistic to reject nebula texture and cosmic rays
-— a real problem on this project's own bright-nebula test frames, not a
-theoretical one; see the class comment in `StarDetector.h` for what that
-fixed). `EquipmentCalibrator` runs the full single-epoch SIP calibration
-pipeline from `docs/equipment-profiling-spec.md`: cross-match detections
-against Gaia (propagated to each sub's own `DATE-OBS`), pool across subs,
-fit a 2D distortion polynomial at each candidate order with held-out
-cross-validation, pick the order at which held-out RMS stabilizes, and
-compute the internal (sub-to-sub, no-Gaia) repeatability diagnostic that
-separates "centroiding is the limit" from "there's a real remaining
-distortion." `EquipmentProfile` saves the fitted model as JSON. Covered by
-a synthetic-star unit test (`tests/star_detector_test.cpp`) and an
-end-to-end synthetic-distortion integration test
-(`tests/equipment_calibrator_test.cpp`), plus manual validation against a
-real 8-sub 2018 North America Nebula session from the Python prototyping —
-order selection and residual levels land in the same ballpark the
-prototype's own cross-validated results did. See `EpochFrom calibrate
---help`.
+- **Epoch fitting** — Gaia catalog loading, rigorous proper-motion
+  space-motion propagation, and a Levenberg-Marquardt fit. Regression-tested
+  against real field data (`tests/epoch_fit_selftest.cpp`).
+- **Plate-solving** — `PlateSolver` shells out to astrometry.net's
+  `solve-field` and reads back center RA/Dec, field size, and pixel scale
+  via wcslib (full TAN/TAN-SIP, distortion terms included). Tested
+  (`tests/plate_solver_wcs_test.cpp`) and cross-checked against real solved
+  fields. See `EpochFrom solve --help`.
+- **Star detection & equipment profiling** — `StarDetector` finds point
+  sources (tiled background estimate, Gaussian matched filter, DAOFIND-style
+  sharpness cut against nebula texture/cosmic rays); `EquipmentCalibrator`
+  runs the full single-epoch SIP calibration pipeline from
+  `docs/equipment-profiling-spec.md` (Gaia cross-match, polynomial distortion
+  fit with held-out cross-validation, internal repeatability diagnostic),
+  saving the result as an `EquipmentProfile` JSON. Tested
+  (`tests/star_detector_test.cpp`, `tests/equipment_calibrator_test.cpp`) and
+  validated against a real 8-sub session. See `EpochFrom calibrate --help`.
+  Doesn't claim full spec parity — see `EquipmentProfile::limitingFactor`'s
+  doc comment for the one diagnosed case vs. the spec's manual-investigation
+  categories.
+- **End-to-end image dating** — `ImageDater` chains star detection, WCS (with
+  optional equipment-profile correction), and the epoch fit into one
+  estimate. Tested end to end (`tests/image_dater_test.cpp`). See
+  `EpochFrom date --help`.
+- **Desktop GUI** — `EpochFrom-gui`, a Qt Widgets app with Gaia/Solve/
+  Calibrate/Date/Starfield tabs plus a **Project bar** (base directory +
+  filter, with per-tab "Fill from Project"/"Fill All Tabs" buttons and
+  editable path patterns) driving the same core library the CLI uses
+  directly. Each tab runs its work on a background thread and shares the
+  CLI's own report formatting. The Solve tab auto-seeds a directory batch's
+  pointing/scale hints from its first single-image solve. The Starfield tab
+  visualizes proper motion in a solved frame (circled fastest-movers with
+  direction/origin vectors, fullscreen mode) and also ships as its own
+  standalone app, `EpochFrom-starfield`, sharing settings with the main GUI.
+  Not full CLI parity yet: `calibrate`'s `--sub`/`--wcs` pair-list mode is
+  still CLI-only, and there's no in-app residual-field plot (`tools/
+  residual-field.html` opens in a browser instead). See "Building" below.
 
-This implementation deliberately doesn't claim everything the spec
-discusses: `StarDetector` is the same family of technique as
-DAOStarFinder/DAOPHOT, not a bit-exact port of it, and
-`EquipmentProfile::limitingFactor` only auto-diagnoses the one comparison
-the spec calls required (internal repeatability vs. held-out residual) —
-it reports `measurement_precision` or `unclear`, not the spec's illustrative
-`catalog_depth`/`detection_noise` categories, which the spec itself
-describes as manual investigations rather than something one calibration
-run's numbers can tell apart on their own.
-
-Dating a real image end to end is now wired up too: `ImageDater` ties
-`StarDetector`, a WCS reader, and `EpochFit` together into one estimate —
-detect stars in a light frame, convert each to sky coordinates (via the
-platesolver's own WCS, SIP terms included if it fit any, or via a saved
-`EquipmentProfile`'s calibrated correction instead when one is given, per
-`docs/equipment-profiling-spec.md` section 9), and fit the capture epoch
-against Gaia. Covered by an end-to-end synthetic-distortion integration
-test (`tests/image_dater_test.cpp`) that checks both the no-profile and
-with-profile paths recover a known injected epoch, plus that applying the
-profile measurably reduces the residual over not applying it to the same
-distorted data. See `EpochFrom date --help`.
-
-A first desktop GUI is here too: `EpochFrom-gui` is a Qt Widgets app with a
-Gaia/Solve/Calibrate/Date/Starfield tab apiece, driving the same core library
-(`epoch_from_core`) the CLI does directly rather than shelling out to it
-(the Gaia tab is the one exception -- see below). Each tab exposes that
-command's options as fields instead of flags, runs the actual work (a
-solve, a calibration directory batch, a dating run) on a background thread
-so the window stays responsive during a long solve, and prints its report
-using the exact same formatting code the CLI uses
-(`src/core/ReportFormatting.{h,cpp}`, factored out for this reason) so the
-two can't quietly drift apart on what a result says. It's a first pass, not
-full parity with the CLI: `calibrate`'s `--sub`/`--wcs` pair-list mode (for
-subs that aren't conveniently co-located in one directory) is still
-CLI-only, and there's no in-app residual-field plot yet -- the Tools menu
-just opens `tools/residual-field.html` in a browser, same as the CLI's own
-suggestion after a `--residuals-csv` export. See "Building" below for how to
-build it (or skip it) and where the binary ends up.
-
-The Gaia tab wraps `scripts/gaia_field_query.py` (see "Gaia data" below) as
-a subprocess via `QProcess`, streaming its progress into the same kind of
-log view the other tabs use, so downloading a field's reference catalog no
-longer requires a terminal.
-
-The **Starfield tab** shows what proper motion actually looks like in one of
-your own frames: point it at a solved image (its `.wcs` sidecar, same
-`<image>.wcs`-next-to-it default as the Date tab) and a Gaia catalog CSV for
-that field, and it draws the image (auto-stretched -- percentile clip +
-asinh, `src/core/ImageStretch.{h,cpp}`) with the fastest-moving Gaia stars
-actually inside the frame circled in yellow, a green line -- arrowhead at the
-tip -- showing where each is heading and a red line showing where it came
-from, both starting at the circle's own edge rather than its center. "Top N"
-is a spin box; the display epoch defaults to the image's own `DATE-OBS` but
-can be overridden to preview where the same stars will be decades from now.
-Line length is proportional to each star's total proper motion, scaled so
-the *average* line length across the selected stars comes out to the image
-diagonal / 30 (`src/core/ProperMotionOverlay.{h,cpp}` does the ranking,
-frame-bounds filtering, and direction/length math; `src/gui/StarfieldCanvas`
-is the pan/zoom viewer -- scroll to zoom, drag to pan, hover a star for its
-Gaia source ID, G mag, and proper motion). Candidates outside the actual
-image footprint are excluded before ranking, since a Gaia query's search
-cone (`gaia_field_query.py --radius`) is normally wider than the sensor's
-own field of view.
-
-The **Fullscreen** button (or F11, Escape to leave) hides the tab's options
-panel and puts the whole window into OS fullscreen, so the starfield itself
-gets the screen -- inside `EpochFrom-gui` it also hides the Project bar, tab
-strip, menu, and status bar for the duration. The same tab is also its own
-**standalone app**, `EpochFrom-starfield`: just the Project bar and this
-viewer, nothing else, for anyone who wants the proper-motion view pinned
-open without the rest of the pipeline's tabs. It shares `EpochFrom-gui`'s
-`QSettings` (same base directory, filter, Gaia catalog path, ...), so
-whichever app you set the Project bar up in first, the other already has it.
-
-A **Project** bar sits above the tabs holding a base directory and a
-filter (Ha/OIII/SII/L/R/G/B/... or blank), persisted between runs. Every
-tab has a "Fill from Project" button that composes that tab's paths from
-it: subs directory defaults to `<base>/<filter>` (or `<base>` itself with
-no filter), Gaia catalog is `<base>/gaia.csv` and equipment profile is
-`<base>/profile.json` (both shared across filters, since neither the star
-field nor the rig's own distortion depends on which filter a sub was shot
-through), and a calibration's residuals CSV defaults to
-`<base>/<filter>_residuals.csv`. It's a one-click convenience, not a
-constraint -- every field it fills stays a plain, freely-editable path
-afterward, and nothing requires using it at all. The Project bar's own
-**"Fill All Tabs"** button runs every tab's "Fill from Project" in one
-click, so setting up a whole session (Gaia, Solve, Calibrate, Date,
-Starfield all pointed at the same base directory/filter) is one click
-instead of five.
-
-The **Solve** tab's workflow is built around solving one image first and
-letting that result set up the batch: solve a single sub (or read its
-`.wcs` with "Skip solving"), and once it succeeds, the tab automatically
-fills in and enables the "Pointing hint" (RA/Dec, with a generous radius
-based on the solved field size) and "Pixel-scale bounds" (±20% around the
-solved pixel scale) from that result, then switches to "Directory (batch)"
-mode pointed at the just-solved image's own folder. The rest of that
-session's subs share essentially the same pointing and the same rig, so
-those hints turn a blind search into a fast, narrow one -- click Solve
-again and the whole directory batch-solves using them. This only fires
-for the single-image mode's result (both a fresh solve and a `--wcs-only`
-read count), since that's the one that's meant to seed the directory run
-that follows it.
-
-The subs directory and residuals filename are actually **patterns**, shown
-as their own fields in the Project bar (default `%filter%` and
-`%filter%_residuals.csv`), where every `%filter%` is replaced with the
-filter selected. If your capture software doesn't name a filter's session
-folder exactly `Ha` -- say it's `Light_Ha_600_secs` instead -- set the dir
-pattern to `Light_%filter%_600_secs` rather than renaming folders to match.
-
-Each tab's options sit in a scroll area above its command-output log (or,
-on the Starfield tab, the starfield canvas), with the divider between them
-a `QSplitter` -- drag it, or click one of the "Balanced"/"More
-Output"/"More Options" presets in the action bar, which also keeps the
-tab's primary button (Solve/Query Gaia/Calibrate/Date/Load) visible
-regardless of scroll position. All five tabs start out on the same even,
-"Balanced" split, so the layout looks and feels consistent switching
-between them (`src/gui/TabLayoutHelpers.h`). Every spin box and combo box in the
-GUI also ignores mouse-wheel scrolling unless it currently has keyboard
-focus (`src/gui/NoWheelWidgets.h`), since Qt's default behavior -- accepting
-wheel input on mere hover -- meant scrolling down a tab's options could
-silently change whatever numeric field the cursor happened to be over
-instead of scrolling the page.
-
-Not yet ported to C++: any automatic equipment-tagging for a dating run
-(today `--profile` is an explicit, manual, and by-default-required choice
-per `date` invocation, opted out of with `--noprofile` — the spec's
-suggestion of auto-detecting equipment from frame metadata is flagged there
-as needing a manual override path anyway, since this library's own header
-metadata was found stale in places during prototyping).
+Not yet ported to C++: automatic equipment-tagging for a dating run
+(`--profile` stays an explicit, manual, by-default-required choice, opted
+out of with `--noprofile`).
 
 ## Screenshots
 
-A full run through the GUI's own recommended order (also printed in its
-status bar): Gaia, then Solve, then Calibrate, then Date — against a real
-39-sub Sadr/Ha session — plus the Starfield viewer on its own.
+A full run through the GUI (the recommended tab order — Gaia, then Solve,
+then Calibrate, then Date — is printed in its status bar; the shots below
+lead with Solve) against a real 39-sub Sadr/Ha session, plus the Starfield
+viewer on its own.
+
+**Solve tab** — batch plate-solving the session's 39 subs against a pointing
+hint, one `.wcs` sidecar per image:
+
+![Solve tab, batch plate-solving a directory of subs with a pointing hint](docs/images/EpochFrom-gui-solve.jpg)
 
 **Gaia tab** — downloading a field's reference catalog, here centered from
 an already-solved `.wcs` sidecar (0.9° radius, G<16, RUWE<1.4): 5154 stars
@@ -202,11 +94,6 @@ back from the archive, with the fastest-moving few printed for a sanity
 check before they're saved to `gaia.csv`:
 
 ![Gaia tab, querying Gaia DR3 from a .wcs sidecar and listing the fastest-moving stars in the field](docs/images/EpochFrom-gui-gaia.jpg)
-
-**Solve tab** — batch plate-solving the same session's 39 subs against that
-pointing hint, one `.wcs` sidecar per image:
-
-![Solve tab, batch plate-solving a directory of subs with a pointing hint](docs/images/EpochFrom-gui-solve.jpg)
 
 **Calibrate tab** — fitting an equipment distortion profile against those
 39 subs' Gaia matches: order-4 polynomial, RMS falling from 1734.3 mas to
@@ -253,6 +140,46 @@ Fullscreen button) against a wider field, the proper-motion glyph the app's
 logo is drawn from repeated once per star:
 
 ![Starfield viewer in fullscreen, showing proper-motion vectors for many stars across a wide field](docs/images/EpochFrom-starfield-hero.jpg)
+
+### On Windows
+
+The same GUI, same tab order, on a real MSYS2/MinGW build (see
+[`docs/windows-port.md`](docs/windows-port.md)) — a 47-sub M51 LRGB session.
+
+**Solve tab** — the directory already solved on a previous run, so this
+pass just confirms all 47 `.wcs` sidecars are in place ("already solved,
+skipping" is expected once a batch has been solved; re-solving is opt-in
+via "Re-solve files that already have a .wcs sidecar"):
+
+![Solve tab on Windows, confirming 47 already-solved subs in a directory batch](docs/images/EpochFrom-gui-solve-windows.jpg)
+
+**Gaia tab** — querying from that batch's `.wcs` sidecar (0.9° radius,
+G<16, RUWE<1.4): 636 stars back from the archive, saved to `gaia.csv`,
+via a `uv`-managed virtual environment's `python.exe`:
+
+![Gaia tab on Windows, querying Gaia DR3 and saving 636 stars to gaia.csv](docs/images/EpochFrom-gui-gaia-windows.jpg)
+
+**Calibrate tab** — fitting an equipment profile against all 47 subs:
+order-3 polynomial, RMS falling from 1630.1 mas to 268.6 ± 3.9 mas
+held-out, with the worst-fitting subs and saved profile/residuals printed
+below:
+
+![Calibrate tab on Windows, fitting an equipment profile against 47 subs](docs/images/EpochFrom-gui-calibrate-windows.jpg)
+
+**Date tab** — batch-dating the same 47 subs against Gaia with that
+profile, ending in a weighted average of 2018-06-22 (epoch 2018.4746 ±
+0.4939 yr):
+
+![Date tab on Windows, batch-dating 47 subs to a weighted average date](docs/images/EpochFrom-gui-date-windows.jpg)
+
+**Starfield tab** — the top 15 fastest-moving Gaia stars around M51 in one
+of those subs:
+
+![Starfield tab on Windows, circling the fastest-moving Gaia stars around M51](docs/images/EpochFrom-gui-starfield-windows.jpg)
+
+...and the same view in fullscreen:
+
+![Starfield viewer on Windows in fullscreen, showing proper-motion vectors around M51](docs/images/EpochFrom-starfield-hero-windows.jpg)
 
 ## Building
 
