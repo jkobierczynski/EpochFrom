@@ -1,6 +1,7 @@
 #include "LinearWcs.h"
 
 #include <wcs.h>
+#include <wcserr.h>
 #include <wcshdr.h>
 
 #include <cstdio>
@@ -48,6 +49,18 @@ QByteArray fitsCardInt(const char *keyword, int value)
     return card.left(80);
 }
 
+// wcslib only populates a struct wcsprm's ->err->msg with a specific,
+// human-readable explanation (naming the offending keyword/value, not just
+// a numeric status) once wcserr_enable(1) has been called -- off by
+// default; called below before the wcslib calls this decorates the error
+// output of.
+QString wcsErrorDetail(const wcsprm *wcs)
+{
+    if (wcs && wcs->err && wcs->err->msg && wcs->err->msg[0] != '\0')
+        return QStringLiteral(": %1").arg(QString::fromLocal8Bit(wcs->err->msg));
+    return QString();
+}
+
 } // namespace
 
 LinearWcs::LinearWcs(double crval1Deg, double crval2Deg, double crpix1, double crpix2, double cd11,
@@ -72,6 +85,8 @@ LinearWcs::LinearWcs(double crval1Deg, double crval2Deg, double crpix1, double c
     header += QByteArray("END").leftJustified(80, ' ');
     const int nkeyrec = header.size() / 80;
 
+    wcserr_enable(1);
+
     int nreject = 0;
     int nwcs = 0;
     wcsprm *wcsHead = nullptr;
@@ -95,7 +110,9 @@ LinearWcs::LinearWcs(double crval1Deg, double crval2Deg, double crpix1, double c
     wcsprm *wcs = &wcsHead[0];
     const int setStatus = wcsset(wcs);
     if (setStatus != 0) {
-        m_errorMessage = QStringLiteral("wcslib wcsset() failed (status %1)").arg(setStatus);
+        m_errorMessage = QStringLiteral("wcslib wcsset() failed (status %1)%2")
+                              .arg(setStatus)
+                              .arg(wcsErrorDetail(wcs));
         wcsvfree(&nwcs, &wcsHead);
         return;
     }

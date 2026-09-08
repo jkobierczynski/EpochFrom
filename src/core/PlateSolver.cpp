@@ -7,6 +7,7 @@
 
 #include <fitsio.h>
 #include <wcs.h>
+#include <wcserr.h>
 #include <wcshdr.h>
 
 #include <cmath>
@@ -81,6 +82,18 @@ void copyCardIfPresent(fitsfile *src, fitsfile *dst, const char *key, int *statu
     if (fits_read_card(src, key, card, &localStatus) != 0)
         return;
     fits_update_card(dst, key, card, status);
+}
+
+// wcslib only populates a struct wcsprm's ->err->msg with a specific,
+// human-readable explanation (naming the offending keyword/value, not just
+// a numeric status) once wcserr_enable(1) has been called -- off by
+// default. See readWcsFile(), which calls wcserr_enable(1) before the
+// wcslib calls this decorates the error output of.
+QString wcsErrorDetail(const wcsprm *wcs)
+{
+    if (wcs && wcs->err && wcs->err->msg && wcs->err->msg[0] != '\0')
+        return QStringLiteral(": %1").arg(QString::fromLocal8Bit(wcs->err->msg));
+    return QString();
 }
 
 } // namespace
@@ -265,6 +278,8 @@ PlateSolveResult PlateSolver::readWcsFile(const QString &wcsPath)
     }
     fits_close_file(fptr, &status);
 
+    wcserr_enable(1);
+
     int nreject = 0;
     int nwcs = 0;
     wcsprm *wcsHead = nullptr;
@@ -286,7 +301,9 @@ PlateSolveResult PlateSolver::readWcsFile(const QString &wcsPath)
     const int setStatus = wcsset(wcs);
     if (setStatus != 0) {
         result.errorMessage =
-            QStringLiteral("wcslib wcsset() failed (status %1)").arg(setStatus);
+            QStringLiteral("wcslib wcsset() failed (status %1)%2")
+                .arg(setStatus)
+                .arg(wcsErrorDetail(wcs));
         wcsvfree(&nwcs, &wcsHead);
         return result;
     }

@@ -4,6 +4,7 @@
 
 #include <fitsio.h>
 #include <wcs.h>
+#include <wcserr.h>
 #include <wcshdr.h>
 
 #include <cstdlib>
@@ -23,6 +24,18 @@ struct Holder {
     wcsprm *wcs;
     int nwcs;
 };
+
+// wcslib only populates a struct wcsprm's ->err->msg with a specific,
+// human-readable explanation (naming the offending keyword/value, not just
+// a numeric status) once wcserr_enable(1) has been called -- off by
+// default. Harmless and idempotent to call repeatedly; done right before
+// the wcslib calls below so any failure from here on carries real detail.
+QString wcsErrorDetail(const wcsprm *wcs)
+{
+    if (wcs && wcs->err && wcs->err->msg && wcs->err->msg[0] != '\0')
+        return QStringLiteral(": %1").arg(QString::fromLocal8Bit(wcs->err->msg));
+    return QString();
+}
 
 } // namespace
 
@@ -50,6 +63,8 @@ Wcs::Wcs(const QString &wcsPath)
     }
     fits_close_file(fptr, &status);
 
+    wcserr_enable(1);
+
     int nreject = 0;
     int nwcs = 0;
     wcsprm *wcsHead = nullptr;
@@ -72,7 +87,9 @@ Wcs::Wcs(const QString &wcsPath)
     wcsprm *wcs = &wcsHead[0];
     const int setStatus = wcsset(wcs);
     if (setStatus != 0) {
-        m_errorMessage = QStringLiteral("wcslib wcsset() failed (status %1)").arg(setStatus);
+        m_errorMessage = QStringLiteral("wcslib wcsset() failed (status %1)%2")
+                              .arg(setStatus)
+                              .arg(wcsErrorDetail(wcs));
         wcsvfree(&nwcs, &wcsHead);
         return;
     }
