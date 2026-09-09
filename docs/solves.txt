@@ -484,3 +484,34 @@ Weighted average date (20 images):
   Epoch:  2024.1740 +/- 0.5460 yr (199.4 days)
   
 2023-09-18 NGC281
+
+Loaded 6629 usable stars from C:/Users/PC/Pictures/astro/2018-10-05 IC410 NGC7635/IC410/OIII/gaia.csv
+
+Using equipment profile: C:/Users/PC/Pictures/astro/2018-10-05 IC410 NGC7635/IC410/OIII/profile.json (order 3, held-out RMS 524.5 mas)
+
+tadpole_Light_OIII_240_secs_001.fits: estimated date 2019-10-26  (epoch 2019.8184 +/- 2.1923 yr, RMS 536.7 mas)
+tadpole_Light_OIII_240_secs_002.fits: estimated date 2018-12-27  (epoch 2018.9881 +/- 0.6931 yr, RMS 415.0 mas)
+tadpole_Light_OIII_240_secs_003.fits: estimated date 2018-09-11  (epoch 2018.6951 +/- 0.5817 yr, RMS 463.6 mas)
+tadpole_Light_OIII_240_secs_004.fits: estimated date 2018-06-08  (epoch 2018.4355 +/- 0.7066 yr, RMS 488.1 mas)
+tadpole_Light_OIII_240_secs_005.fits: estimated date 2018-10-29  (epoch 2018.8276 +/- 0.6164 yr, RMS 480.8 mas)
+tadpole_Light_OIII_240_secs_006.fits: estimated date 2018-12-18  (epoch 2018.9640 +/- 0.5693 yr, RMS 424.2 mas)
+tadpole_Light_OIII_240_secs_007.fits: estimated date 2018-12-14  (epoch 2018.9534 +/- 0.6101 yr, RMS 479.1 mas)
+tadpole_Light_OIII_240_secs_008.fits: estimated date 2018-10-11  (epoch 2018.7764 +/- 0.5595 yr, RMS 445.2 mas)
+tadpole_Light_OIII_240_secs_009.fits: estimated date 2018-10-19  (epoch 2018.7994 +/- 0.5190 yr, RMS 410.2 mas)
+tadpole_Light_OIII_240_secs_010.fits: estimated date 2018-11-08  (epoch 2018.8542 +/- 0.6321 yr, RMS 403.3 mas)
+tadpole_Light_OIII_240_secs_011.fits: estimated date 2018-11-09  (epoch 2018.8576 +/- 0.6141 yr, RMS 449.0 mas)
+tadpole_Light_OIII_240_secs_012.fits: estimated date 2019-01-16  (epoch 2019.0432 +/- 0.5860 yr, RMS 446.0 mas)
+tadpole_Light_OIII_240_secs_013.fits: estimated date 2018-08-21  (epoch 2018.6392 +/- 0.6690 yr, RMS 495.3 mas)
+tadpole_Light_OIII_240_secs_014.fits: estimated date 2019-03-22  (epoch 2019.2205 +/- 0.5146 yr, RMS 416.8 mas)
+tadpole_Light_OIII_240_secs_015.fits: estimated date 2018-10-20  (epoch 2018.8032 +/- 0.6028 yr, RMS 464.4 mas)
+tadpole_Light_OIII_240_secs_016.fits: estimated date 2018-11-21  (epoch 2018.8901 +/- 0.7742 yr, RMS 501.4 mas)
+tadpole_Light_OIII_240_secs_017.fits: estimated date 2019-02-17  (epoch 2019.1302 +/- 0.5646 yr, RMS 435.0 mas)
+tadpole_Light_OIII_240_secs_018.fits: estimated date 2019-02-21  (epoch 2019.1417 +/- 0.5677 yr, RMS 449.4 mas)
+
+18 dated, 0 failed, out of 18 file(s)
+
+Weighted average date (18 images):
+  Date:   2018-11-26
+  Epoch:  2018.9048 +/- 0.1454 yr (53.1 days)
+  
+2018-10-05 IC410
