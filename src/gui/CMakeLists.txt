@@ -101,6 +101,23 @@ add_custom_command(TARGET epoch_from_gui POST_BUILD
 install(DIRECTORY ${CMAKE_SOURCE_DIR}/scripts/
         DESTINATION ${CMAKE_INSTALL_BINDIR}/scripts)
 
+# Same story, same fix, for tools/ (just residual-field.html today):
+# MainWindow::findResidualFieldViewer() already looks for it at "right
+# beside me, in a tools/ subfolder" first -- same mechanism as
+# GaiaTab::findScript()/SolveTab::findAnsvrWrapper() above -- but nothing
+# copied it there, so a windeployqt-built Windows package (or any
+# `cmake --install` tree) was missing it even though the Tools menu's
+# auto-detection code was already written to expect it. Without this, the
+# Tools menu's "Couldn't find tools/residual-field.html automatically"
+# fallback message is what everyone actually got.
+add_custom_command(TARGET epoch_from_gui POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+            "${CMAKE_SOURCE_DIR}/tools"
+            "$<TARGET_FILE_DIR:epoch_from_gui>/tools"
+    COMMENT "Copying tools/ next to EpochFrom-gui for MainWindow's Residual Field Viewer auto-detection")
+install(DIRECTORY ${CMAKE_SOURCE_DIR}/tools/
+        DESTINATION ${CMAKE_INSTALL_BINDIR}/tools)
+
 # Desktop-entry + hicolor-icon-theme install, so a proper `cmake --install`
 # actually gets EpochFrom a taskbar/dock icon (see the comment on
 # include(GNUInstallDirs) in the top-level CMakeLists.txt for why the

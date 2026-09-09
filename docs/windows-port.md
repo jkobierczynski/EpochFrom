@@ -216,6 +216,20 @@ tab also auto-detects it at that path and pre-fills "solve-field path"
 with it directly (`SolveTab::findAnsvrWrapper()`), the same way the Gaia
 tab already did for its own script.
 
+**Update: `tools/residual-field.html` had the exact same gap, also now
+fixed.** `MainWindow::findResidualFieldViewer()` was already written to
+look for it at "right beside me, in a `tools/` subfolder" first -- same
+auto-detection mechanism as `GaiaTab::findScript()`/
+`SolveTab::findAnsvrWrapper()` above -- but nothing actually copied
+`tools/` there, so a real Windows package built via `windeployqt` was
+missing it, and the Tools menu's "Couldn't find tools/residual-field.html
+automatically" fallback message is what everyone actually got. Fixed the
+same way as `scripts/`: `src/gui/CMakeLists.txt` now also copies the
+whole `tools/` directory next to `EpochFrom-gui`, `POST_BUILD` and via
+its own `install()` rule, so it's just present from now on -- confirmed
+against a real build, both in the raw build tree and after `cmake
+--install`.
+
 The two lessons from getting there, still worth knowing for any
 *other* file a CI step needs to copy out of the checkout:
 

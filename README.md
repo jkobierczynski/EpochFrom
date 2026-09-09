@@ -19,15 +19,6 @@ native Windows build).
 
 ## Status
 
-Early scaffold. The core epoch-fitting engine (Gaia catalog loading, rigorous
-proper-motion space-motion propagation, and the Levenberg-Marquardt epoch
-fit) is implemented and regression-tested against real field data — see
-`tests/epoch_fit_selftest.cpp`. It's a direct C++ port of a Python
-prototype that was validated interactively against this project's own real
-capture library (2013–2018 North America / Pelican Nebula sessions) before
-any of this code was written; see `docs/` for what that prototyping found.
-
-Plate-solving is also ported: `PlateSolver` shells out to `astrometry.net`'s
 Early scaffold, but every pipeline stage is implemented in C++ and tested —
 each is a direct port of a Python prototype validated interactively against
 this project's own real capture library (2013–2018 North America/Pelican
