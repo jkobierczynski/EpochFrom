@@ -115,6 +115,23 @@ add_custom_command(TARGET epoch_from_gui POST_BUILD
             "${CMAKE_SOURCE_DIR}/tools"
             "$<TARGET_FILE_DIR:epoch_from_gui>/tools"
     COMMENT "Copying tools/ next to EpochFrom-gui for MainWindow's Residual Field Viewer auto-detection")
+# Same story again for the standalone CLI tool (EpochFrom / EpochFrom.exe,
+# the epoch_from_cli target defined in src/cli/CMakeLists.txt -- see that
+# file for the matching install() rule this pairs with): it builds into its
+# own separate src/cli build directory, not next to EpochFrom-gui, so a
+# Windows package assembled by running windeployqt directly against
+# EpochFrom-gui's own build/install directory (as this project's Windows CI
+# does) never picked it up at all -- the GUI shipped, but the CLI it's
+# meant to sit alongside for anyone scripting a batch run didn't.
+# $<TARGET_FILE:epoch_from_cli> (and add_dependencies below) makes sure
+# epoch_from_cli is actually built before this copy runs.
+add_custom_command(TARGET epoch_from_gui POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "$<TARGET_FILE:epoch_from_cli>"
+            "$<TARGET_FILE_DIR:epoch_from_gui>/$<TARGET_FILE_NAME:epoch_from_cli>"
+    COMMENT "Copying the EpochFrom CLI tool next to EpochFrom-gui")
+add_dependencies(epoch_from_gui epoch_from_cli)
+
 install(DIRECTORY ${CMAKE_SOURCE_DIR}/tools/
         DESTINATION ${CMAKE_INSTALL_BINDIR}/tools)
 
